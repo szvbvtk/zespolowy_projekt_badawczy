@@ -57,14 +57,19 @@ class Reversi(State):
             action_legal (bool):
                 boolean flag indicating if the specified action was legal and performed.
         """        
-        i = action_index // Reversi.N
-        j = action_index % Reversi.N
-        if i < 0 or i >= Reversi.M or j < 0 or j >= Reversi.N:
+        row = action_index // Reversi.N
+        col = action_index % Reversi.N
+
+        pawns_indices = self.get_pawns_to_flip(action_index)
+        if not pawns_indices:
             return False
-        if self.board[i, j] != 0:
-            return False
-        self.board[i, j] = self.turn
+
+        self.board[row, col] = self.turn
+        for row_idx, col_idx in pawns_indices:
+            self.board[row_idx, col_idx] = self.turn
+
         self.turn *= -1
+
         return True
     
     def compute_outcome_job(self):
@@ -207,13 +212,16 @@ class Reversi(State):
         child = self.take_action(action_index)
         return child    
     
+    # zrobione
     def get_board(self):       
         return self.board
     
+    # zrobione
     def get_extra_info(self):
         # W reversi nie ma dodatkowych informacji
         return None
    
+    # zrobione
     @staticmethod
     def action_name_to_index(action_name):
         """        
@@ -232,41 +240,59 @@ class Reversi(State):
         j = ord(col) - ord('A')
         return i * Reversi.N + j
 
+    # zrobione
     @staticmethod
     def action_index_to_name(action_index):
         row = action_index // Reversi.N
         col = action_index % Reversi.N
         return f"{chr(ord('A') + col)}{row + 1}"
 
+    # zrobione
     @staticmethod
-    def get_board_shape():
-        """
-        Returns a tuple with shape of boards for Reversi game.
-        
-        Returns:
-            shape (tuple(int, int)):
-                shape of boards related to states of this class.
-        """        
+    def get_board_shape():  
         return (Reversi.M, Reversi.N)
 
+    # zrobione
     @staticmethod
-    def get_extra_info_memory():
-        """        
-        Returns amount of memory (in bytes) needed to memorize additional information associated with Reversi states - currently 0 (no such information).
-        
-        Returns:
-            extra_info_memory (int):
-                number of bytes required to memorize additional information associated with Reversi states.
-        """        
+    def get_extra_info_memory():     
         return 0
 
+    # zrobione
     @staticmethod
-    def get_max_actions():
-        """
-        Returns the maximum number of actions (the largest branching factor) equal to the product: ``Reversi.M * Reversi.N``.
-        
-        Returns:
-            max_actions (int):
-                maximum number of actions (the largest branching factor) equal to the product: ``Reversi.M * Reversi.N``.
-        """                        
+    def get_max_actions():                      
         return Reversi.M * Reversi.N
+    
+    # zrobione - pomyślec nad tym czy nie lepiej przechowywac row coords i col coords żeby w take action od razu przekazac liste dwoch list X i Y - żeby nie trzeba bylo zmieniac pionków w petli
+    def get_pawns_to_flip(self, action_index):
+        start_row = action_index // Reversi.N
+        start_col = action_index % Reversi.N
+        pawns_to_flip = []
+
+        # jeśli pole jest zajęte
+        if self.board[start_row, start_col] != 0:
+            return pawns_to_flip
+
+        player = self.turn
+        opponent = -player
+
+        for horizontal in (-1, 0, 1):
+            for vertical in (-1, 0, 1):
+                if horizontal == 0 and vertical == 0:
+                    continue
+
+                next_row = start_row + vertical
+                next_col = start_col + horizontal
+
+                pawns_in_direction = []
+                while 0 <= next_row < Reversi.M and 0 <= next_col < Reversi.N:
+                    if self.board[next_row, next_col] == opponent:
+                        pawns_in_direction.append((next_row, next_col))
+                        next_row += vertical
+                        next_col += horizontal
+                    elif self.board[next_row, next_col] == player:
+                        pawns_to_flip.extend(pawns_in_direction)
+                        break
+                    else:
+                        break
+
+        return pawns_to_flip

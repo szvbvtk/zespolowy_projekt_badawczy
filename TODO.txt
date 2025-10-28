@@ -1,3 +1,5 @@
+Modyfikacja main -> drugi main oddzielny dla Reversi
+
 CPU
 
 Stworzyć plik src/reversi.py
@@ -30,3 +32,6 @@ Gra trwa do momentu aż nie będzie możliwy żaden ruch dla obu graczy:
 
 Jeśli jeden z graczy nie może wykonać ruchu, tura przechodzi na drugiego gracza.
 Funkcje take_action_job i take_random_action_playout muszą obsługiwać ten przypadek
+
+
+Podmienić wywołania funkcji w mctsnc_game_mechanics.py na *_reversi

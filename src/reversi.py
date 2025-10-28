@@ -6,7 +6,7 @@ from numba import int8
 class Reversi(State):  
     N = M = 8 # rozmiar planszy Reversi (8x8)
     
-    SYMBOLS = ["\u25CB", "+", "\u25CF"] # można zostawić
+    SYMBOLS = ["\u25CF", "+", "\u25CB"] 
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -23,20 +23,22 @@ class Reversi(State):
     def class_repr():      
         return f"{Reversi.__name__}_{Reversi.M}x{Reversi.N}"    
             
-    # zmienić - nie zmieniałem tej funkcji (oprocz podmiany nazwy)
     def __str__(self):    
         s = ""
 
         for row_idx in range(Reversi.M):
-            s += f"{row_idx}| "
+            s += f"{row_idx + 1}| "
             for col_idx in range(Reversi.N):
-                s += f"{self.board[row_idx, col_idx] + 1} "
+                s += f"{Reversi.SYMBOLS[self.board[row_idx, col_idx] + 1]} "
 
             s += "\n"
 
         s += "   "
         for col_idx in range(Reversi.N):
-            s += f"{col_idx} "
+            s += f"{chr(ord('A') + col_idx)} "
+
+        s += "\n"
+        s += f"Ruch: {'Czarny' if self.turn == 1 else 'Biały'}\n"
 
         return s
 
@@ -205,17 +207,11 @@ class Reversi(State):
         child = self.take_action(action_index)
         return child    
     
-    def get_board(self):
-        """                
-        Returns the board of this state (a two-dimensional array of bytes).
-        
-        Returns:
-            board (ndarray[np.int8, ndim=2]):
-                board of this state (a two-dimensional array of bytes).
-        """        
+    def get_board(self):       
         return self.board
     
     def get_extra_info(self):
+        # W reversi nie ma dodatkowych informacji
         return None
    
     @staticmethod
@@ -230,27 +226,18 @@ class Reversi(State):
             action_index (int):
                 index corresponding to the given name.   
         """        
-        letter = action_name.upper()[0]
-        j = ord(letter) - ord('A')
-        i = int(action_name[1:]) - 1
+        col = action_name[0].upper()
+        row = int(action_name[1]) - 1
+        i = row
+        j = ord(col) - ord('A')
         return i * Reversi.N + j
 
     @staticmethod
     def action_index_to_name(action_index):
-        """        
-        Returns an action's name based on its index (numbering from 0). E.g., index ``18`` for 15 x 15 Reversi maps to name ``"B4"``.
-        
-        Args:
-            action_index (int):
-                index of an action.
-        Returns:
-            action_name (str):
-                name corresponding to the given index.          
-        """        
-        i = action_index // Reversi.N
-        j = action_index % Reversi.N
-        return f"{chr(ord('A') + j)}{i + 1}"
-   
+        row = action_index // Reversi.N
+        col = action_index % Reversi.N
+        return f"{chr(ord('A') + col)}{row + 1}"
+
     @staticmethod
     def get_board_shape():
         """

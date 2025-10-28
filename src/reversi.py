@@ -72,17 +72,32 @@ class Reversi(State):
 
         return True
     
+    # zrobione - częsciowo
     def compute_outcome_job(self):
-        """        
-        Computes and returns the game outcome for this state in compliance with rules of Reversi game: 
-        {-1, 1} denoting a win for the minimizing or maximizing player, respectively, if he connected exactly 5 his stones (6 or more do not count for a win); 
-        0 denoting a tie, when the board is filled and no line of 5 exists; 
-        ``None`` when the game is ongoing.
+        # czy gracz może wykonać ruch
+        if self.has_legal_actions_job(self.turn):
+            return None
         
-        Returns:
-            outcome ({-1, 0, 1} or ``None``)
-                game outcome for this state.
-        """        
+        # jeśli nie może to sprawdzamy czy chociaż przeciwnik może, najwyżej tura obecnego gracza przepadnie
+        # if self.last_action_index is None:
+        #     return None
+        
+        if self.has_legal_actions_job(-self.turn):
+            return None
+        
+        player_1_points = np.sum(self.board == 1)
+        player_minus_1_points = np.sum(self.board == -1)
+
+        if player_1_points > player_minus_1_points:
+            return 1
+        elif player_minus_1_points > player_1_points:
+            return -1
+        else:
+            return 0
+        
+        # tu niżej to nie wiem co się dzieje - to stara implementacja z gomoku
+        # trzeba będzie dostosować do reversi numba outcome
+
         i = self.last_action_index // Reversi.N
         j = self.last_action_index % Reversi.N
         if True: # a bit faster outcome via numba
@@ -141,7 +156,14 @@ class Reversi(State):
                 return last_token                                    
         if np.sum(self.board == 0) == 0: # draw
             return 0
-        return None        
+        return None    
+
+    # zrobione
+    def has_legal_actions_job(self, turn):
+        for action_index in range(Reversi.M * Reversi.N):  
+            if self.get_pawns_to_flip(action_index, turn):
+                return True
+        return False
 
     @staticmethod
     @jit(int8(int8, int8, int8, int8, int8, int8[:, :]), nopython=True, cache=True)  
@@ -263,7 +285,7 @@ class Reversi(State):
         return Reversi.M * Reversi.N
     
     # zrobione - pomyślec nad tym czy nie lepiej przechowywac row coords i col coords żeby w take action od razu przekazac liste dwoch list X i Y - żeby nie trzeba bylo zmieniac pionków w petli
-    def get_pawns_to_flip(self, action_index):
+    def get_pawns_to_flip(self, action_index, turn=None):
         start_row = action_index // Reversi.N
         start_col = action_index % Reversi.N
         pawns_to_flip = []
@@ -272,7 +294,7 @@ class Reversi(State):
         if self.board[start_row, start_col] != 0:
             return pawns_to_flip
 
-        player = self.turn
+        player = self.turn if turn is None else turn
         opponent = -player
 
         for horizontal in (-1, 0, 1):
@@ -296,3 +318,4 @@ class Reversi(State):
                         break
 
         return pawns_to_flip
+

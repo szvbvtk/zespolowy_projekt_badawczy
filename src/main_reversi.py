@@ -27,7 +27,7 @@ STATE_CLASS = Reversi
 N_GAMES = 10
 # None = Human
 AI_A_SHORTNAME = None 
-AI_B_SHORTNAME = None # "mctsnc_5_inf_4_256_acp_prodigal" 
+AI_B_SHORTNAME =  "mcts_1_inf_vanilla" 
 REPRODUCE_EXPERIMENT = False
 
 # folders

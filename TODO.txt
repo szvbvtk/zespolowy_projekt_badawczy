@@ -35,3 +35,7 @@ Funkcje take_action_job i take_random_action_playout muszą obsługiwać ten prz
 
 
 Podmienić wywołania funkcji w mctsnc_game_mechanics.py na *_reversi
+
+
+ruch o numerze 0 
+

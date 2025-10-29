@@ -3,27 +3,32 @@ from mcts import State
 from numba import jit
 from numba import int8
 
-class Reversi(State):  
-    N = M = 8 # rozmiar planszy Reversi (8x8)
-    
-    SYMBOLS = ["\u25CF", "+", "\u25CB"] 
-    
+
+class Reversi(State):
+    N = M = 6  
+
+    SYMBOLS = ["\u25cf", "+", "\u25cb"]
+
     def __init__(self, parent=None):
         super().__init__(parent)
         if self.parent:
             self.board = np.copy(self.parent.board)
         else:
             self.board = np.zeros((Reversi.M, Reversi.N), dtype=np.int8)
-            self.board[[3,4],[3,4]] = -1 # białe
-            self.board[[3,4],[4,3]] = 1 # czarne
+            mid_row = Reversi.M // 2
+            mid_col = Reversi.N // 2
 
-            # super().__init__(parent) ustawia self.turn = 1 (czarne zaczynają)
-    
+            self.board[mid_row - 1, mid_col - 1] = -1  # białe
+            self.board[mid_row, mid_col] = -1   
+            self.board[mid_row - 1, mid_col] = 1       # czarne
+            self.board[mid_row, mid_col - 1] = 1
+
+
     @staticmethod
-    def class_repr():      
-        return f"{Reversi.__name__}_{Reversi.M}x{Reversi.N}"    
-            
-    def __str__(self):    
+    def class_repr():
+        return f"{Reversi.__name__}_{Reversi.M}x{Reversi.N}"
+
+    def __str__(self):
         s = ""
 
         for row_idx in range(Reversi.M):
@@ -42,49 +47,37 @@ class Reversi(State):
 
         return s
 
-    
     def take_action_job(self, action_index):
-        """
-        Places a stone onto the crossing of the board indicated by the action_index (row: ``action_index // Reversi.N``, column: ``action_index % Reversi.N``) 
-        and returns ``True`` if the action is legal (crossing was not occupied).
-        Otherwise, does no changes and returns ``False``.
-
-        Args:
-            action_index (int): 
-                index of crossing where to place a stone.
-        
-        Returns:
-            action_legal (bool):
-                boolean flag indicating if the specified action was legal and performed.
-        """        
         row = action_index // Reversi.N
         col = action_index % Reversi.N
 
         pawns_indices = self.get_pawns_to_flip(action_index)
-        if not pawns_indices:
+        if not pawns_indices[0]:
             return False
 
         self.board[row, col] = self.turn
-        for row_idx, col_idx in pawns_indices:
-            self.board[row_idx, col_idx] = self.turn
+        # for row_idx, col_idx in pawns_indices:
+        #     self.board[row_idx, col_idx] = self.turn
+        self.board[pawns_indices[0], pawns_indices[1]] = self.turn
 
-        self.turn *= -1
+        if self.has_legal_actions(-self.turn):
+            self.turn *= -1
 
         return True
-    
+
     # zrobione - częsciowo
     def compute_outcome_job(self):
         # czy gracz może wykonać ruch
-        if self.has_legal_actions_job(self.turn):
+        if self.has_legal_actions(self.turn):
             return None
-        
+
         # jeśli nie może to sprawdzamy czy chociaż przeciwnik może, najwyżej tura obecnego gracza przepadnie
         # if self.last_action_index is None:
         #     return None
-        
-        if self.has_legal_actions_job(-self.turn):
+
+        if self.has_legal_actions(-self.turn):
             return None
-        
+
         player_1_points = np.sum(self.board == 1)
         player_minus_1_points = np.sum(self.board == -1)
 
@@ -94,82 +87,20 @@ class Reversi(State):
             return -1
         else:
             return 0
-        
-        # tu niżej to nie wiem co się dzieje - to stara implementacja z gomoku
-        # trzeba będzie dostosować do reversi numba outcome
-
-        i = self.last_action_index // Reversi.N
-        j = self.last_action_index % Reversi.N
-        if True: # a bit faster outcome via numba
-            numba_outcome = Reversi.compute_outcome_job_numba_jit(Reversi.M, Reversi.N, self.turn, i, j, self.board)
-            if numba_outcome != 0:
-                return numba_outcome 
-        else:
-            last_token = -self.turn        
-            # N-S
-            total = 0
-            for k in range(1, 6):
-                if i -  k < 0 or self.board[i - k, j] != last_token:
-                    break
-                total += 1
-            for k in range(1, 6):
-                if i + k >= Reversi.M or self.board[i + k, j] != last_token:
-                    break            
-                total += 1
-            if total == 4:
-                return last_token                        
-            # E-W
-            total = 0
-            for k in range(1, 6):
-                if j + k >= Reversi.N or self.board[i, j + k] != last_token:
-                    break
-                total += 1
-            for k in range(1, 6):
-                if j - k < 0 or self.board[i, j - k] != last_token:
-                    break            
-                total += 1
-            if total == 4:
-                return last_token            
-            # NE-SW
-            total = 0
-            for k in range(1, 6):
-                if i - k < 0 or j + k >= Reversi.N or self.board[i - k, j + k] != last_token:
-                    break
-                total += 1
-            for k in range(1, 6):
-                if i + k >= Reversi.M or j - k < 0 or self.board[i + k, j - k] != last_token:
-                    break
-                total += 1            
-            if total == 4:
-                return last_token            
-            # NW-SE
-            total = 0
-            for k in range(1, 6):
-                if i - k < 0 or j - k < 0 or self.board[i - k, j - k] != last_token:
-                    break
-                total += 1
-            for k in range(1, 6):
-                if i + k >= Reversi.M or j + k >= Reversi.N or self.board[i + k, j + k] != last_token:
-                    break
-                total += 1            
-            if total == 4:
-                return last_token                                    
-        if np.sum(self.board == 0) == 0: # draw
-            return 0
-        return None    
 
     # zrobione
-    def has_legal_actions_job(self, turn):
-        for action_index in range(Reversi.M * Reversi.N):  
-            if self.get_pawns_to_flip(action_index, turn):
+    def has_legal_actions(self, turn):
+        for action_index in range(Reversi.M * Reversi.N):
+            if self.get_pawns_to_flip(action_index, turn)[0]:
+                print(self.get_pawns_to_flip(action_index, turn))
                 return True
         return False
 
     @staticmethod
-    @jit(int8(int8, int8, int8, int8, int8, int8[:, :]), nopython=True, cache=True)  
+    @jit(int8(int8, int8, int8, int8, int8, int8[:, :]), nopython=True, cache=True)
     def compute_outcome_job_numba_jit(M, N, turn, last_i, last_j, board):
         """Called by ``compute_outcome_job`` for faster outcomes."""
-        last_token = -turn        
+        last_token = -turn
         i, j = last_i, last_j
         # N-S
         total = 0
@@ -179,10 +110,10 @@ class Reversi(State):
             total += 1
         for k in range(1, 6):
             if i + k >= M or board[i + k, j] != last_token:
-                break            
+                break
             total += 1
         if total == 4:
-            return last_token        
+            return last_token
         # E-W
         total = 0
         for k in range(1, 6):
@@ -191,7 +122,7 @@ class Reversi(State):
             total += 1
         for k in range(1, 6):
             if j - k < 0 or board[i, j - k] != last_token:
-                break            
+                break
             total += 1
         if total == 4:
             return last_token
@@ -204,7 +135,7 @@ class Reversi(State):
         for k in range(1, 6):
             if i + k >= M or j - k < 0 or board[i + k, j - k] != last_token:
                 break
-            total += 1            
+            total += 1
         if total == 4:
             return last_token
         # NW-SE
@@ -216,50 +147,43 @@ class Reversi(State):
         for k in range(1, 6):
             if i + k >= M or j + k >= N or board[i + k, j + k] != last_token:
                 break
-            total += 1            
+            total += 1
         if total == 4:
-            return last_token        
-        return 0        
-                            
+            return last_token
+        return 0
+
     def take_random_action_playout(self):
-        """        
+        """
         Picks a uniformly random action from actions available in this state and returns the result of calling ``take_action`` with the action index as argument.
-        
+
         Returns:
-            child (State): 
-                result of ``take_action`` call for the random action.          
-        """        
-        indexes = np.where(np.ravel(self.board) == 0)[0]
-        action_index = np.random.choice(indexes) 
-        child = self.take_action(action_index)
-        return child    
-    
+            child (State):
+                result of ``take_action`` call for the random action.
+        """
+
+        pass
+
+        # indexes = np.where(np.ravel(self.board) == 0)[0]
+        # action_index = np.random.choice(indexes)
+        # child = self.take_action(action_index)
+        # return child
+
     # zrobione
-    def get_board(self):       
+    def get_board(self):
         return self.board
-    
+
     # zrobione
     def get_extra_info(self):
         # W reversi nie ma dodatkowych informacji
         return None
-   
+
     # zrobione
     @staticmethod
     def action_name_to_index(action_name):
-        """        
-        Returns an action's index (numbering from 0) based on its name. E.g., name ``"B4"`` for 15 x 15 Reversi maps to index ``18``.
-        
-        Args:
-            action_name (str):
-                name of an action.
-        Returns:
-            action_index (int):
-                index corresponding to the given name.   
-        """        
         col = action_name[0].upper()
         row = int(action_name[1]) - 1
         i = row
-        j = ord(col) - ord('A')
+        j = ord(col) - ord("A")
         return i * Reversi.N + j
 
     # zrobione
@@ -267,32 +191,32 @@ class Reversi(State):
     def action_index_to_name(action_index):
         row = action_index // Reversi.N
         col = action_index % Reversi.N
+
         return f"{chr(ord('A') + col)}{row + 1}"
 
     # zrobione
     @staticmethod
-    def get_board_shape():  
+    def get_board_shape():
         return (Reversi.M, Reversi.N)
 
     # zrobione
     @staticmethod
-    def get_extra_info_memory():     
+    def get_extra_info_memory():
         return 0
 
     # zrobione
     @staticmethod
-    def get_max_actions():                      
+    def get_max_actions():
         return Reversi.M * Reversi.N
-    
-    # zrobione - pomyślec nad tym czy nie lepiej przechowywac row coords i col coords żeby w take action od razu przekazac liste dwoch list X i Y - żeby nie trzeba bylo zmieniac pionków w petli
+
     def get_pawns_to_flip(self, action_index, turn=None):
         start_row = action_index // Reversi.N
         start_col = action_index % Reversi.N
-        pawns_to_flip = []
+        pawns_to_flip_coords = [[], []]  # wiersze, kolumny
 
         # jeśli pole jest zajęte
         if self.board[start_row, start_col] != 0:
-            return pawns_to_flip
+            return pawns_to_flip_coords
 
         player = self.turn if turn is None else turn
         opponent = -player
@@ -305,17 +229,18 @@ class Reversi(State):
                 next_row = start_row + vertical
                 next_col = start_col + horizontal
 
-                pawns_in_direction = []
+                pawns_in_direction = [[], []]  # wiersze, kolumny
                 while 0 <= next_row < Reversi.M and 0 <= next_col < Reversi.N:
                     if self.board[next_row, next_col] == opponent:
-                        pawns_in_direction.append((next_row, next_col))
+                        pawns_in_direction[0].append(next_row)
+                        pawns_in_direction[1].append(next_col)
                         next_row += vertical
                         next_col += horizontal
                     elif self.board[next_row, next_col] == player:
-                        pawns_to_flip.extend(pawns_in_direction)
+                        pawns_to_flip_coords[0].extend(pawns_in_direction[0])
+                        pawns_to_flip_coords[1].extend(pawns_in_direction[1])
                         break
                     else:
                         break
 
-        return pawns_to_flip
-
+        return pawns_to_flip_coords

@@ -92,9 +92,15 @@ class Reversi(State):
     def has_legal_actions(self, turn):
         for action_index in range(Reversi.M * Reversi.N):
             if self.get_pawns_to_flip(action_index, turn)[0]:
-                print(self.get_pawns_to_flip(action_index, turn))
                 return True
         return False
+
+    def get_all_legal_actions(self, turn):
+        legal_actions = []
+        for action_index in range(Reversi.M * Reversi.N):
+            if self.get_pawns_to_flip(action_index, turn)[0]:
+                legal_actions.append(action_index)
+        return legal_actions
 
     @staticmethod
     @jit(int8(int8, int8, int8, int8, int8, int8[:, :]), nopython=True, cache=True)
@@ -160,13 +166,14 @@ class Reversi(State):
             child (State):
                 result of ``take_action`` call for the random action.
         """
+        legal_actions = self.get_all_legal_actions(self.turn)
 
-        pass
+        random_action_index = np.random.choice(legal_actions)
 
-        # indexes = np.where(np.ravel(self.board) == 0)[0]
-        # action_index = np.random.choice(indexes)
-        # child = self.take_action(action_index)
-        # return child
+        child = self.take_action(random_action_index)
+
+        return child
+
 
     # zrobione
     def get_board(self):

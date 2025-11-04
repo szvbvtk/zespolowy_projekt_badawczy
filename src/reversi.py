@@ -5,7 +5,7 @@ from numba import int8
 
 
 class Reversi(State):
-    N = M = 6  
+    N = M = 8 
 
     SYMBOLS = ["\u25cf", "+", "\u25cb"]
 
@@ -18,10 +18,10 @@ class Reversi(State):
             mid_row = Reversi.M // 2
             mid_col = Reversi.N // 2
 
-            self.board[mid_row - 1, mid_col - 1] = -1  # białe
-            self.board[mid_row, mid_col] = -1   
-            self.board[mid_row - 1, mid_col] = 1       # czarne
-            self.board[mid_row, mid_col - 1] = 1
+            self.board[mid_row - 1, mid_col - 1] = 1  # białe
+            self.board[mid_row, mid_col] = 1   
+            self.board[mid_row - 1, mid_col] = -1       # czarne
+            self.board[mid_row, mid_col - 1] = -1
 
 
     @staticmethod
@@ -56,8 +56,7 @@ class Reversi(State):
             return False
 
         self.board[row, col] = self.turn
-        # for row_idx, col_idx in pawns_indices:
-        #     self.board[row_idx, col_idx] = self.turn
+
         self.board[pawns_indices[0], pawns_indices[1]] = self.turn
 
         if self.has_legal_actions(-self.turn):
@@ -65,15 +64,9 @@ class Reversi(State):
 
         return True
 
-    # zrobione - częsciowo
     def compute_outcome_job(self):
-        # czy gracz może wykonać ruch
         if self.has_legal_actions(self.turn):
             return None
-
-        # jeśli nie może to sprawdzamy czy chociaż przeciwnik może, najwyżej tura obecnego gracza przepadnie
-        # if self.last_action_index is None:
-        #     return None
 
         if self.has_legal_actions(-self.turn):
             return None
@@ -88,12 +81,12 @@ class Reversi(State):
         else:
             return 0
 
-    # zrobione
     def has_legal_actions(self, turn):
         for action_index in range(Reversi.M * Reversi.N):
             if self.get_pawns_to_flip(action_index, turn)[0]:
                 return True
         return False
+    
 
     def get_all_legal_actions(self, turn):
         legal_actions = []
@@ -159,13 +152,6 @@ class Reversi(State):
         return 0
 
     def take_random_action_playout(self):
-        """
-        Picks a uniformly random action from actions available in this state and returns the result of calling ``take_action`` with the action index as argument.
-
-        Returns:
-            child (State):
-                result of ``take_action`` call for the random action.
-        """
         legal_actions = self.get_all_legal_actions(self.turn)
 
         random_action_index = np.random.choice(legal_actions)
@@ -175,16 +161,13 @@ class Reversi(State):
         return child
 
 
-    # zrobione
     def get_board(self):
         return self.board
 
-    # zrobione
     def get_extra_info(self):
         # W reversi nie ma dodatkowych informacji
         return None
 
-    # zrobione
     @staticmethod
     def action_name_to_index(action_name):
         col = action_name[0].upper()
@@ -193,25 +176,22 @@ class Reversi(State):
         j = ord(col) - ord("A")
         return i * Reversi.N + j
 
-    # zrobione
     @staticmethod
     def action_index_to_name(action_index):
+
         row = action_index // Reversi.N
         col = action_index % Reversi.N
 
         return f"{chr(ord('A') + col)}{row + 1}"
 
-    # zrobione
     @staticmethod
     def get_board_shape():
         return (Reversi.M, Reversi.N)
 
-    # zrobione
     @staticmethod
     def get_extra_info_memory():
         return 0
 
-    # zrobione
     @staticmethod
     def get_max_actions():
         return Reversi.M * Reversi.N
@@ -221,7 +201,6 @@ class Reversi(State):
         start_col = action_index % Reversi.N
         pawns_to_flip_coords = [[], []]  # wiersze, kolumny
 
-        # jeśli pole jest zajęte
         if self.board[start_row, start_col] != 0:
             return pawns_to_flip_coords
 
@@ -236,7 +215,7 @@ class Reversi(State):
                 next_row = start_row + vertical
                 next_col = start_col + horizontal
 
-                pawns_in_direction = [[], []]  # wiersze, kolumny
+                pawns_in_direction = [[], []]
                 while 0 <= next_row < Reversi.M and 0 <= next_col < Reversi.N:
                     if self.board[next_row, next_col] == opponent:
                         pawns_in_direction[0].append(next_row)

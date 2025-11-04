@@ -17,6 +17,7 @@ import numpy as np
 from mcts import MCTS
 from mctsnc import MCTSNC
 from game_runner import GameRunner
+from game_runner2 import GameRunner2
 import time
 from utils import cpu_and_system_props, gpu_props, dict_to_str, Logger, experiment_hash_str, save_and_zip_experiment, unzip_and_load_experiment
 import sys
@@ -26,8 +27,8 @@ from reversi import Reversi
 STATE_CLASS = Reversi
 N_GAMES = 10
 # None = Human
-AI_A_SHORTNAME = None 
-AI_B_SHORTNAME =  "mcts_1_inf_vanilla" 
+AI_B_SHORTNAME = None 
+AI_A_SHORTNAME =  "mcts_5_inf_vanilla" 
 REPRODUCE_EXPERIMENT = False
 
 # folders
@@ -180,7 +181,8 @@ if __name__ == "__main__":
         white_player_ai = ai_b if ai_a_starts else ai_a 
         print(f"BLACK: {black_player_ai if black_player_ai else 'human'}")
         print(f"WHITE: {white_player_ai if white_player_ai else 'human'}")
-        game_runner = GameRunner(STATE_CLASS, black_player_ai, white_player_ai, i + 1, N_GAMES, experiment_info_old)
+        # game_runner = GameRunner(STATE_CLASS, black_player_ai, white_player_ai, i + 1, N_GAMES, experiment_info_old)
+        game_runner = GameRunner2(STATE_CLASS, black_player_ai, white_player_ai, i + 1, N_GAMES, experiment_info_old)
         outcome, game_info = game_runner.run()
         experiment_info["games_infos"][str(i + 1)] = game_info
         outcomes[i] = outcome

@@ -1,11 +1,12 @@
 import numpy as np
 from mcts import MCTS
-from c4 import C4
-from gomoku import Gomoku
+# from c4 import C4
+# from gomoku import Gomoku
 from game_runner import GameRunner
 import time
 from utils import cpu_and_system_props, gpu_props, dict_to_str, Logger, experiment_hash_str, save_and_zip_experiment, unzip_and_load_experiment
 import sys
+from reversi import Reversi
 
 __version__ = "1.0.1"
 __author__ = "Przemysław Klęsk"
@@ -154,6 +155,7 @@ class GameRunner2:
     
 if __name__ == "__main__":
         black_player = None # None for human
-        white_player = MCTS(search_time_limit=1.0, search_steps_limit=np.inf, vanilla=True)
-        game_runner = GameRunner2(C4, black_player, white_player, 1, 1)
+        # white_player = MCTS(search_time_limit=1.0, search_steps_limit=np.inf, vanilla=True)
+        white_player = None
+        game_runner = GameRunner2(Reversi, black_player, white_player, 1, 1)
         outcome, game_info = game_runner.run()

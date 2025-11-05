@@ -39,3 +39,7 @@ Podmienić wywołania funkcji w mctsnc_game_mechanics.py na *_reversi
 
 ruch o numerze 0 
 
+
+is_action_legal
+i 
+take_action

@@ -5,7 +5,7 @@ from numba import int8
 
 
 class Reversi(State):
-    N = M = 8 
+    N = M = 8
 
     SYMBOLS = ["\u25cf", "+", "\u25cb"]
 
@@ -22,6 +22,8 @@ class Reversi(State):
             self.board[mid_row, mid_col] = 1   
             self.board[mid_row - 1, mid_col] = -1       # czarne
             self.board[mid_row, mid_col - 1] = -1
+            # self.board[0, Reversi.M-1] = -1
+            # self.board[0, Reversi.M-2] = 1
 
 
     @staticmethod
@@ -48,6 +50,11 @@ class Reversi(State):
         return s
 
     def take_action_job(self, action_index):
+        if action_index == Reversi.M * Reversi.N:
+            self.turn *= -1
+            return True
+
+        
         row = action_index // Reversi.N
         col = action_index % Reversi.N
 
@@ -59,8 +66,10 @@ class Reversi(State):
 
         self.board[pawns_indices[0], pawns_indices[1]] = self.turn
 
-        if self.has_legal_actions(-self.turn):
-            self.turn *= -1
+        # if self.has_legal_actions(-self.turn):
+        #     self.turn *= -1
+
+        self.turn *= -1
 
         return True
 
@@ -95,70 +104,23 @@ class Reversi(State):
                 legal_actions.append(action_index)
         return legal_actions
 
-    @staticmethod
-    @jit(int8(int8, int8, int8, int8, int8, int8[:, :]), nopython=True, cache=True)
-    def compute_outcome_job_numba_jit(M, N, turn, last_i, last_j, board):
-        """Called by ``compute_outcome_job`` for faster outcomes."""
-        last_token = -turn
-        i, j = last_i, last_j
-        # N-S
-        total = 0
-        for k in range(1, 6):
-            if i - k < 0 or board[i - k, j] != last_token:
-                break
-            total += 1
-        for k in range(1, 6):
-            if i + k >= M or board[i + k, j] != last_token:
-                break
-            total += 1
-        if total == 4:
-            return last_token
-        # E-W
-        total = 0
-        for k in range(1, 6):
-            if j + k >= N or board[i, j + k] != last_token:
-                break
-            total += 1
-        for k in range(1, 6):
-            if j - k < 0 or board[i, j - k] != last_token:
-                break
-            total += 1
-        if total == 4:
-            return last_token
-        # NE-SW
-        total = 0
-        for k in range(1, 6):
-            if i - k < 0 or j + k >= N or board[i - k, j + k] != last_token:
-                break
-            total += 1
-        for k in range(1, 6):
-            if i + k >= M or j - k < 0 or board[i + k, j - k] != last_token:
-                break
-            total += 1
-        if total == 4:
-            return last_token
-        # NW-SE
-        total = 0
-        for k in range(1, 6):
-            if i - k < 0 or j - k < 0 or board[i - k, j - k] != last_token:
-                break
-            total += 1
-        for k in range(1, 6):
-            if i + k >= M or j + k >= N or board[i + k, j + k] != last_token:
-                break
-            total += 1
-        if total == 4:
-            return last_token
-        return 0
 
     def take_random_action_playout(self):
         legal_actions = self.get_all_legal_actions(self.turn)
 
-        random_action_index = np.random.choice(legal_actions)
+        if legal_actions:
+            random_action_index = np.random.choice(legal_actions)
+            child = self.take_action(random_action_index)
+            return child
+        else:
+            child = self.take_action(Reversi.M * Reversi.N)
+            return child
 
-        child = self.take_action(random_action_index)
+        # random_action_index = np.random.choice(legal_actions)
 
-        return child
+        # child = self.take_action(random_action_index)
+
+        # return child
 
 
     def get_board(self):
@@ -170,6 +132,9 @@ class Reversi(State):
 
     @staticmethod
     def action_name_to_index(action_name):
+        if action_name == "-":
+            return Reversi.M * Reversi.N
+        
         col = action_name[0].upper()
         row = int(action_name[1]) - 1
         i = row
@@ -178,6 +143,9 @@ class Reversi(State):
 
     @staticmethod
     def action_index_to_name(action_index):
+        # pusta akcja
+        if action_index == Reversi.M * Reversi.N:
+            return "-"
 
         row = action_index // Reversi.N
         col = action_index % Reversi.N

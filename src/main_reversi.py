@@ -181,8 +181,8 @@ if __name__ == "__main__":
         white_player_ai = ai_b if ai_a_starts else ai_a 
         print(f"BLACK: {black_player_ai if black_player_ai else 'human'}")
         print(f"WHITE: {white_player_ai if white_player_ai else 'human'}")
-        # game_runner = GameRunner(STATE_CLASS, black_player_ai, white_player_ai, i + 1, N_GAMES, experiment_info_old)
-        game_runner = GameRunner2(STATE_CLASS, black_player_ai, white_player_ai, i + 1, N_GAMES, experiment_info_old)
+        game_runner = GameRunner(STATE_CLASS, black_player_ai, white_player_ai, i + 1, N_GAMES, experiment_info_old)
+        # game_runner = GameRunner2(STATE_CLASS, black_player_ai, white_player_ai, i + 1, N_GAMES, experiment_info_old)
         outcome, game_info = game_runner.run()
         experiment_info["games_infos"][str(i + 1)] = game_info
         outcomes[i] = outcome

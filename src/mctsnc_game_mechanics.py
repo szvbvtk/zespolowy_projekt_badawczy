@@ -325,87 +325,88 @@ def compute_outcome_gomoku(m, n, board, extra_info, turn, last_action):
 
 @cuda.jit(device=True)
 def is_action_legal_reversi(m, n, board, extra_info, turn, action, legal_actions):
-
-    # domyślnie: nielegalny ruch
     legal_actions[action] = False
 
-    # --- ruch PASS ---
     if action == m * n:
-        # sprawdź, czy gracz ma jakikolwiek ZWYKŁY ruch
-        has_normal_move = False
-
-        for a in range(m * n):
-            i = a // n
-            j = a % n
-
+        has_normal = False
+        for idx in range(m * n):
+            i = idx // n
+            j = idx % n
             if board[i, j] != 0:
                 continue
-
-            for horizontal in range(-1, 2):
-                for vertical in range(-1, 2):
-                    if horizontal == 0 and vertical == 0:
+            for dh in range(-1, 2):
+                for dv in range(-1, 2):
+                    if dh == 0 and dv == 0:
                         continue
-
-                    row = i + horizontal
-                    col = j + vertical
-
+                    row = i + dh
+                    col = j + dv
                     if row < 0 or row >= m or col < 0 or col >= n:
                         continue
-
                     if board[row, col] == -turn:
                         while True:
-                            row += horizontal
-                            col += vertical
-                            if (
-                                row < 0
-                                or row >= m
-                                or col < 0
-                                or col >= n
-                                or board[row, col] == 0
-                            ):
+                            row += dh
+                            col += dv
+                            if row < 0 or row >= m or col < 0 or col >= n or board[row, col] == 0:
                                 break
                             if board[row, col] == turn:
-                                has_normal_move = True
+                                has_normal = True
                                 break
-                    if has_normal_move:
-                        break
-                if has_normal_move:
+                if has_normal:
                     break
 
-        # pass jest legalny tylko jeśli NIE ma żadnego normalnego ruchu
-        if not has_normal_move:
+        if has_normal:
+            return
+
+        opp = -turn
+        opp_has = False
+        for idx in range(m * n):
+            i = idx // n
+            j = idx % n
+            if board[i, j] != 0:
+                continue
+            for dh in range(-1, 2):
+                for dv in range(-1, 2):
+                    if dh == 0 and dv == 0:
+                        continue
+                    row = i + dh
+                    col = j + dv
+                    if row < 0 or row >= m or col < 0 or col >= n:
+                        continue
+                    if board[row, col] == -opp:
+                        while True:
+                            row += dh
+                            col += dv
+                            if row < 0 or row >= m or col < 0 or col >= n or board[row, col] == 0:
+                                break
+                            if board[row, col] == opp:
+                                opp_has = True
+                                break
+                if opp_has:
+                    break
+
+        if opp_has:
             legal_actions[action] = True
         return
 
-    # --- zwykły ruch na planszy ---
     i = action // n
     j = action % n
 
     if board[i, j] != 0:
         return
 
-    for horizontal in range(-1, 2):
-        for vertical in range(-1, 2):
-            if horizontal == 0 and vertical == 0:
+    for dh in range(-1, 2):
+        for dv in range(-1, 2):
+            if dh == 0 and dv == 0:
                 continue
-
-            row = i + horizontal
-            col = j + vertical
-
+            row = i + dh
+            col = j + dv
             if row < 0 or row >= m or col < 0 or col >= n:
                 continue
-
             if board[row, col] == -turn:
                 while True:
-                    row += horizontal
-                    col += vertical
-                    if (
-                        row < 0
-                        or row >= m
-                        or col < 0
-                        or col >= n
-                        or board[row, col] == 0
-                    ):
+                    row += dh
+                    col += dv
+                    if row < 0 or row >= m or col < 0 or col >= n or board[row, col] == 0:
                         break
                     if board[row, col] == turn:
                         legal_actions[action] = True
@@ -414,43 +415,31 @@ def is_action_legal_reversi(m, n, board, extra_info, turn, action, legal_actions
 
 @cuda.jit(device=True)
 def take_action_reversi(m, n, board, extra_info, turn, action):
-
     if action == m * n:
         return
 
     i = action // n
     j = action % n
-
     board[i, j] = turn
 
-    for horizontal in range(-1, 2):
-        for vertical in range(-1, 2):
-            if horizontal == 0 and vertical == 0:
+    for dh in range(-1, 2):
+        for dv in range(-1, 2):
+            if dh == 0 and dv == 0:
                 continue
-
-            row = i + horizontal
-            col = j + vertical
-
+            row = i + dh
+            col = j + dv
             if row < 0 or row >= m or col < 0 or col >= n:
                 continue
-
             if board[row, col] == -turn:
                 while True:
-                    row += horizontal
-                    col += vertical
-                    if (
-                        row < 0
-                        or row >= m
-                        or col < 0
-                        or col >= n
-                        or board[row, col] == 0
-                    ):
+                    row += dh
+                    col += dv
+                    if row < 0 or row >= m or col < 0 or col >= n or board[row, col] == 0:
                         break
                     if board[row, col] == turn:
-                        # cofamy się i odwracamy piony przeciwnika
                         while True:
-                            row -= horizontal
-                            col -= vertical
+                            row -= dh
+                            col -= dv
                             if row == i and col == j:
                                 break
                             board[row, col] = turn
@@ -459,10 +448,8 @@ def take_action_reversi(m, n, board, extra_info, turn, action):
 
 @cuda.jit(device=True)
 def legal_actions_playout_reversi(m, n, board, extra_info, turn, legal_actions_with_count):
-
     count = 0
 
-    # zwykłe ruchy
     for action_index in range(m * n):
         i = action_index // n
         j = action_index % n
@@ -470,51 +457,80 @@ def legal_actions_playout_reversi(m, n, board, extra_info, turn, legal_actions_w
         if board[i, j] != 0:
             continue
 
-        is_action_legal = False
-        for horizontal in range(-1, 2):
-            for vertical in range(-1, 2):
-                if horizontal == 0 and vertical == 0:
+        legal = False
+
+        for dh in range(-1, 2):
+            for dv in range(-1, 2):
+                if dh == 0 and dv == 0:
                     continue
-
-                row = i + horizontal
-                col = j + vertical
-
+                row = i + dh
+                col = j + dv
                 if row < 0 or row >= m or col < 0 or col >= n:
                     continue
-
                 if board[row, col] == -turn:
                     while True:
-                        row += horizontal
-                        col += vertical
-                        if (
-                            row < 0
-                            or row >= m
-                            or col < 0
-                            or col >= n
-                            or board[row, col] == 0
-                        ):
+                        row += dh
+                        col += dv
+                        if row < 0 or row >= m or col < 0 or col >= n or board[row, col] == 0:
                             break
                         if board[row, col] == turn:
-                            is_action_legal = True
+                            legal = True
                             break
-
-                if is_action_legal:
+                if legal:
                     break
 
-        if is_action_legal:
+        if legal:
             legal_actions_with_count[count] = action_index
             count += 1
 
-    if count == 0:
-        legal_actions_with_count[0] = m * n
-        count = 1
+    if count > 0:
+        legal_actions_with_count[-1] = count
+        return
 
-    legal_actions_with_count[-1] = count
+    opp = -turn
+    opp_has = False
+
+    for action_index in range(m * n):
+        i = action_index // n
+        j = action_index % n
+        if board[i, j] != 0:
+            continue
+
+        legal_opp = False
+
+        for dh in range(-1, 2):
+            for dv in range(-1, 2):
+                if dh == 0 and dv == 0:
+                    continue
+                row = i + dh
+                col = j + dv
+                if row < 0 or row >= m or col < 0 or col >= n:
+                    continue
+                if board[row, col] == -opp:
+                    while True:
+                        row += dh
+                        col += dv
+                        if row < 0 or row >= m or col < 0 or col >= n or board[row, col] == 0:
+                            break
+                        if board[row, col] == opp:
+                            legal_opp = True
+                            break
+                if legal_opp:
+                    break
+
+        if legal_opp:
+            opp_has = True
+            break
+
+    if opp_has:
+        legal_actions_with_count[0] = m * n
+        legal_actions_with_count[-1] = 1
+    else:
+        legal_actions_with_count[-1] = 0
+
 
 @cuda.jit(device=True)
-def take_action_playout_reversi(
-    m, n, board, extra_info, turn, action, action_ord, legal_actions_with_count
-):
+def take_action_playout_reversi(m, n, board, extra_info, turn, action, action_ord, legal_actions_with_count):
     if action == m * n:
         return
 
@@ -522,55 +538,45 @@ def take_action_playout_reversi(
     j = action % n
     board[i, j] = turn
 
-    for horizontal in range(-1, 2):
-        for vertical in range(-1, 2):
-            if horizontal == 0 and vertical == 0:
+    for dh in range(-1, 2):
+        for dv in range(-1, 2):
+            if dh == 0 and dv == 0:
                 continue
-
-            row = i + horizontal
-            col = j + vertical
-
+            row = i + dh
+            col = j + dv
             if row < 0 or row >= m or col < 0 or col >= n:
                 continue
-
             if board[row, col] == -turn:
                 while True:
-                    row += horizontal
-                    col += vertical
-                    if (
-                        row < 0
-                        or row >= m
-                        or col < 0
-                        or col >= n
-                        or board[row, col] == 0
-                    ):
+                    row += dh
+                    col += dv
+                    if row < 0 or row >= m or col < 0 or col >= n or board[row, col] == 0:
                         break
                     if board[row, col] == turn:
                         while True:
-                            row -= horizontal
-                            col -= vertical
-                            if row == i and col == j:                                break
+                            row -= dh
+                            col -= dv
+                            if row == i and col == j:
+                                break
                             board[row, col] = turn
                         break
 
 
 @cuda.jit(device=True)
 def compute_outcome_reversi(m, n, board, extra_info, turn, last_action):
-    player_1_points = 0
-    player_minus_1_points = 0
+    player_1 = 0
+    player_minus_1 = 0
 
-    for row in range(m):
-        for col in range(n):
-            if board[row, col] == 1:
-                player_1_points += 1
-            elif board[row, col] == -1:
-                player_minus_1_points += 1
+    for i in range(m):
+        for j in range(n):
+            if board[i, j] == 1:
+                player_1 += 1
+            elif board[i, j] == -1:
+                player_minus_1 += 1
 
-    # helper: czy dany gracz ma jakikolwiek zwykły ruch?
-    has_player_1_legal_action = False
-    has_player_minus_1_legal_action = False
+    has_1 = False
+    has_minus_1 = False
 
-    # sprawdź legalne ruchy dla obu graczy
     for action_index in range(m * n):
         i = action_index // n
         j = action_index % n
@@ -578,69 +584,51 @@ def compute_outcome_reversi(m, n, board, extra_info, turn, last_action):
         if board[i, j] != 0:
             continue
 
-        # sprawdzamy dla obu graczy naraz
-        for horizontal in range(-1, 2):
-            for vertical in range(-1, 2):
-                if horizontal == 0 and vertical == 0:
+        for dh in range(-1, 2):
+            for dv in range(-1, 2):
+                if dh == 0 and dv == 0:
                     continue
 
-                # --- dla gracza +1 ---
-                if not has_player_1_legal_action:
-                    row = i + horizontal
-                    col = j + vertical
-                    if 0 <= row < m and 0 <= col < n and board[row, col] == -1:
-                        while True:
-                            row += horizontal
-                            col += vertical
-                            if (
-                                row < 0
-                                or row >= m
-                                or col < 0
-                                or col >= n
-                                or board[row, col] == 0
-                            ):
-                                break
-                            if board[row, col] == 1:
-                                has_player_1_legal_action = True
-                                break
+                row = i + dh
+                col = j + dv
+                row2 = row
+                col2 = col
 
-                # --- dla gracza -1 ---
-                if not has_player_minus_1_legal_action:
-                    row2 = i + horizontal
-                    col2 = j + vertical
-                    if 0 <= row2 < m and 0 <= col2 < n and board[row2, col2] == 1:
-                        while True:
-                            row2 += horizontal
-                            col2 += vertical
-                            if (
-                                row2 < 0
-                                or row2 >= m
-                                or col2 < 0
-                                or col2 >= n
-                                or board[row2, col2] == 0
-                            ):
-                                break
-                            if board[row2, col2] == -1:
-                                has_player_minus_1_legal_action = True
-                                break
+                if 0 <= row < m and 0 <= col < n and board[row, col] == -1:
+                    while True:
+                        row += dh
+                        col += dv
+                        if row < 0 or row >= m or col < 0 or col >= n or board[row, col] == 0:
+                            break
+                        if board[row, col] == 1:
+                            has_1 = True
+                            break
 
-            if has_player_1_legal_action and has_player_minus_1_legal_action:
-                break
+                if 0 <= row2 < m and 0 <= col2 < n and board[row2, col2] == 1:
+                    while True:
+                        row2 += dh
+                        col2 += dv
+                        if row2 < 0 or row2 >= m or col2 < 0 or col2 >= n or board[row2, col2] == 0:
+                            break
+                        if board[row2, col2] == -1:
+                            has_minus_1 = True
+                            break
 
-        if has_player_1_legal_action and has_player_minus_1_legal_action:
+                if has_1 and has_minus_1:
+                    break
+
+        if has_1 and has_minus_1:
             break
 
-    # jeśli którykolwiek gracz ma ruch -> gra trwa
-    if has_player_1_legal_action or has_player_minus_1_legal_action:
+    if has_1 or has_minus_1:
         return 2
 
-    # nikt nie ma ruchów -> koniec gry, decydują punkty
-    if player_1_points > player_minus_1_points:
+    if player_1 > player_minus_1:
         return 1
-    elif player_minus_1_points > player_1_points:
+    if player_minus_1 > player_1:
         return -1
-    else:
-        return 0
+    return 0
+
 
 
 

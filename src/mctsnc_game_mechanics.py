@@ -26,8 +26,9 @@ def legal_actions_playout(m, n, board, extra_info, turn, legal_actions_with_coun
     """Establishes legal actions and their count during a playout; leaves the results in array ``legal_actions_with_count``."""
     # legal_actions_playout_c4(m, n, board, extra_info, turn, legal_actions_with_count)
     # legal_actions_playout_gomoku(m, n, board, extra_info, turn, legal_actions_with_count)
-    legal_actions_playout_reversi(m, n, board, extra_info, turn, legal_actions_with_count)
-
+    legal_actions_playout_reversi(
+        m, n, board, extra_info, turn, legal_actions_with_count
+    )
 
 
 @cuda.jit(device=True)
@@ -39,7 +40,10 @@ def take_action_playout(
     #     m, n, board, extra_info, turn, action, action_ord, legal_actions_with_count
     # )
     # take_action_playout_gomoku(m, n, board, extra_info, turn, action, action_ord, legal_actions_with_count)
-    take_action_playout_reversi(m, n, board, extra_info, turn, action, action_ord, legal_actions_with_count)
+    take_action_playout_reversi(
+        m, n, board, extra_info, turn, action, action_ord, legal_actions_with_count
+    )
+
 
 @cuda.jit(device=True)
 def compute_outcome(
@@ -161,8 +165,6 @@ def is_action_legal_gomoku(m, n, board, extra_info, turn, action, legal_actions)
     legal_actions[action] = board[i, j] == 0
 
 
-
-
 @cuda.jit(device=True)
 def take_action_gomoku(m, n, board, extra_info, turn, action):
     """Functionality of function ``take_action`` for the game of Gomoku."""
@@ -272,8 +274,11 @@ def compute_outcome_gomoku(m, n, board, extra_info, turn, last_action):
 def is_action_legal_reversi(m, n, board, extra_info, turn, action, legal_actions):
     legal_actions[action] = False
 
+    # jeśli akcja = m * n, to znaczy że jest zamarkowany pas
+    # trzeba sprawdzić czy jest to jedynie zwykły pas czy drugi gracz też nie ma ruchów (wtedy gra się kończy)
     if action == m * n:
         player_has_action = False
+
         for idx in range(m * n):
             i = idx // n
             j = idx % n
@@ -296,18 +301,26 @@ def is_action_legal_reversi(m, n, board, extra_info, turn, action, legal_actions
                         while True:
                             row += horizontal
                             col += vertical
-                            if row < 0 or row >= m or col < 0 or col >= n or board[row, col] == 0:
+                            if (
+                                row < 0
+                                or row >= m
+                                or col < 0
+                                or col >= n
+                                or board[row, col] == 0
+                            ):
                                 break
                             if board[row, col] == turn:
                                 player_has_action = True
                                 break
 
+                # skoro znaleziono ruch to znaczy że pas nie jest legalny
                 if player_has_action:
                     break
 
         if player_has_action:
             return
 
+        # jeśli nie nastąpił return to znaczy że gracz nie ma ruchów więc sprawdzamy czy ma je przeciwnik (ta sama logika)
         opponent = -turn
         opponent_has_action = False
         for idx in range(m * n):
@@ -327,7 +340,13 @@ def is_action_legal_reversi(m, n, board, extra_info, turn, action, legal_actions
                         while True:
                             row += horizontal
                             col += vertical
-                            if row < 0 or row >= m or col < 0 or col >= n or board[row, col] == 0:
+                            if (
+                                row < 0
+                                or row >= m
+                                or col < 0
+                                or col >= n
+                                or board[row, col] == 0
+                            ):
                                 break
                             if board[row, col] == opponent:
                                 opponent_has_action = True
@@ -335,10 +354,12 @@ def is_action_legal_reversi(m, n, board, extra_info, turn, action, legal_actions
                 if opponent_has_action:
                     break
 
+        # czyli aktualny gracz nie ma ruchów, ale przeciwnik ma - więc pas powinien nastąpić
         if opponent_has_action:
             legal_actions[action] = True
         return
 
+    # sprawdzanie normalnego ruchu != m * n
     i = action // n
     j = action % n
 
@@ -357,7 +378,13 @@ def is_action_legal_reversi(m, n, board, extra_info, turn, action, legal_actions
                 while True:
                     row += horizontal
                     col += vertical
-                    if row < 0 or row >= m or col < 0 or col >= n or board[row, col] == 0:
+                    if (
+                        row < 0
+                        or row >= m
+                        or col < 0
+                        or col >= n
+                        or board[row, col] == 0
+                    ):
                         break
                     if board[row, col] == turn:
                         legal_actions[action] = True
@@ -388,9 +415,16 @@ def take_action_reversi(m, n, board, extra_info, turn, action):
                     row += horizontal
                     col += vertical
 
-                    if row < 0 or row >= m or col < 0 or col >= n or board[row, col] == 0:
+                    if (
+                        row < 0
+                        or row >= m
+                        or col < 0
+                        or col >= n
+                        or board[row, col] == 0
+                    ):
                         break
 
+                    # jeśli przeciwnik otoczony w kierunku to cofamy sie i zmieniamy pionki
                     if board[row, col] == turn:
                         while True:
                             row -= horizontal
@@ -402,7 +436,9 @@ def take_action_reversi(m, n, board, extra_info, turn, action):
 
 
 @cuda.jit(device=True)
-def legal_actions_playout_reversi(m, n, board, extra_info, turn, legal_actions_with_count):
+def legal_actions_playout_reversi(
+    m, n, board, extra_info, turn, legal_actions_with_count
+):
     count = 0
 
     for action_index in range(m * n):
@@ -424,12 +460,18 @@ def legal_actions_playout_reversi(m, n, board, extra_info, turn, legal_actions_w
 
                 if row < 0 or row >= m or col < 0 or col >= n:
                     continue
-                
+
                 if board[row, col] == -turn:
                     while True:
                         row += horizontal
                         col += vertical
-                        if row < 0 or row >= m or col < 0 or col >= n or board[row, col] == 0:
+                        if (
+                            row < 0
+                            or row >= m
+                            or col < 0
+                            or col >= n
+                            or board[row, col] == 0
+                        ):
                             break
                         if board[row, col] == turn:
                             legal = True
@@ -441,10 +483,13 @@ def legal_actions_playout_reversi(m, n, board, extra_info, turn, legal_actions_w
             legal_actions_with_count[count] = action_index
             count += 1
 
+    # jeśli są legalne ruchy to zapisujemy ich liczbę i return
     if count > 0:
         legal_actions_with_count[-1] = count
         return
 
+    # jeśli nie nastąpił return to znaczy że aktualny gracz nie ma ruchów.
+    # trzeba sprawdzić czy przeciwnik je ma
     opponent = -turn
     opponent_has_action = False
 
@@ -468,7 +513,13 @@ def legal_actions_playout_reversi(m, n, board, extra_info, turn, legal_actions_w
                     while True:
                         row += horizontal
                         col += vertical
-                        if row < 0 or row >= m or col < 0 or col >= n or board[row, col] == 0:
+                        if (
+                            row < 0
+                            or row >= m
+                            or col < 0
+                            or col >= n
+                            or board[row, col] == 0
+                        ):
                             break
                         if board[row, col] == opponent:
                             legal_opponent = True
@@ -480,17 +531,20 @@ def legal_actions_playout_reversi(m, n, board, extra_info, turn, legal_actions_w
             opponent_has_action = True
             break
 
-    # aktualny gracz nie ma ruchów, wiec trzeba sprawdzic czy przeciwnik je ma, jeśli nie to zero legal actions == koniec gry
+    # jeśli przeciwnik ma ruchy to aktualny gracz musi spasować, sztuczny ruch
     if opponent_has_action:
-        legal_actions_with_count[0] = m * n # m*n = indeks poza planszą = pas
+        legal_actions_with_count[0] = m * n  # m*n = indeks poza planszą = pas
         legal_actions_with_count[-1] = 1
     else:
+        # jeśli przeciwnik też nie ma ruchów (liczba legalnych ruchów = 0) to gra się kończy
         legal_actions_with_count[-1] = 0
 
 
 @cuda.jit(device=True)
-def take_action_playout_reversi(m, n, board, extra_info, turn, action, action_ord, legal_actions_with_count):
-    if action == m * n: # pas
+def take_action_playout_reversi(
+    m, n, board, extra_info, turn, action, action_ord, legal_actions_with_count
+):
+    if action == m * n:  # pas
         return
 
     i = action // n
@@ -509,7 +563,13 @@ def take_action_playout_reversi(m, n, board, extra_info, turn, action, action_or
                 while True:
                     row += horizontal
                     col += vertical
-                    if row < 0 or row >= m or col < 0 or col >= n or board[row, col] == 0:
+                    if (
+                        row < 0
+                        or row >= m
+                        or col < 0
+                        or col >= n
+                        or board[row, col] == 0
+                    ):
                         break
                     if board[row, col] == turn:
                         while True:
@@ -557,7 +617,13 @@ def compute_outcome_reversi(m, n, board, extra_info, turn, last_action):
                     while True:
                         row += horizontal
                         col += vertical
-                        if row < 0 or row >= m or col < 0 or col >= n or board[row, col] == 0:
+                        if (
+                            row < 0
+                            or row >= m
+                            or col < 0
+                            or col >= n
+                            or board[row, col] == 0
+                        ):
                             break
                         if board[row, col] == 1:
                             has_player_1_action = True
@@ -567,31 +633,32 @@ def compute_outcome_reversi(m, n, board, extra_info, turn, last_action):
                     while True:
                         row2 += horizontal
                         col2 += vertical
-                        if row2 < 0 or row2 >= m or col2 < 0 or col2 >= n or board[row2, col2] == 0:
+                        if (
+                            row2 < 0
+                            or row2 >= m
+                            or col2 < 0
+                            or col2 >= n
+                            or board[row2, col2] == 0
+                        ):
                             break
                         if board[row2, col2] == -1:
                             has_player_minus_1_action = True
                             break
 
+                # skoro znaleziono ruch to można przerwać dalsze sprawdzanie, gra na pewno trwa
                 if has_player_1_action and has_player_minus_1_action:
                     break
 
         if has_player_1_action and has_player_minus_1_action:
             break
 
+    # gra trwa dalej
     if has_player_1_action or has_player_minus_1_action:
         return 2
 
+    # jeśli żaden z graczy nie ma ruchów to gra się kończy i sprawdzamy kto wygrał
     if player_1 > player_minus_1:
         return 1
     if player_minus_1 > player_1:
         return -1
     return 0
-
-
-
-
-
-
-
-

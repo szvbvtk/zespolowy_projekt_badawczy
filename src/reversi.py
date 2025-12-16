@@ -7,7 +7,7 @@ from numba import int8
 class Reversi(State):
     N = M = 8
 
-    SYMBOLS = ["\u25cf", "+", "\u25cb"]
+    SYMBOLS = ["\u25cb", "+", "\u25cf"]
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -18,13 +18,52 @@ class Reversi(State):
             mid_row = Reversi.M // 2
             mid_col = Reversi.N // 2
 
-            self.board[mid_row - 1, mid_col - 1] = 1  # białe
-            self.board[mid_row, mid_col] = 1   
-            self.board[mid_row - 1, mid_col] = -1       # czarne
-            self.board[mid_row, mid_col - 1] = -1
-            # self.board[0, Reversi.M-1] = -1
-            # self.board[0, Reversi.M-2] = 1
+            self.board[mid_row - 1, mid_col - 1] = -1  # biale
+            self.board[mid_row, mid_col] = -1  # biale
+            self.board[mid_row - 1, mid_col] = 1  # czarne
+            self.board[mid_row, mid_col - 1] = 1  # czarne
 
+            # self.board[0, 3] = -1
+            # self.board[0, 4] = -1
+            # self.board[0, 5] = -1
+            # self.board[0, 6] = -1
+            # self.board[0, 7] = -1
+            # self.board[1, 3] = -1
+            # self.board[1, 4] = -1
+            # self.board[1, 5] = -1
+            # self.board[1, 6] = -1
+            # self.board[1, 7] = -1
+            # self.board[2, 4] = -1
+            # self.board[2, 6] = -1
+            # self.board[2, 7] = -1
+            # self.board[3, 5] = -1
+            # self.board[3, 6] = -1
+            # self.board[3, 7] = -1
+            # self.board[4, 6] = -1
+            # self.board[4, 7] = -1
+            # self.board[5, 7] = -1
+            # self.board[4, 0] = -1
+            # self.board[5, 0] = -1
+            # self.board[5, 1] = -1
+            # self.board[6, 0] = -1
+            # self.board[7, 0] = -1
+            # self.board[7, 1] = -1
+            # self.board[7, 2] = -1
+            # self.board[7, 3] = -1
+            # self.board[7, 4] = -1
+
+            # self.board[3, 3] = 1
+            # self.board[4, 4] = 1
+            # self.board[3, 4] = 1
+            # self.board[4, 3] = 1
+            # self.board[2, 3] = 1
+            # self.board[2, 5] = 1
+            # self.board[4, 5] = 1
+            # self.board[4, 2] = 1
+            # self.board[5, 2] = 1
+            # self.board[5, 3] = 1
+            # self.board[5, 4] = 1
+            # self.board[6, 2] = 1
 
     @staticmethod
     def class_repr():
@@ -54,7 +93,6 @@ class Reversi(State):
             self.turn *= -1
             return True
 
-        
         row = action_index // Reversi.N
         col = action_index % Reversi.N
 
@@ -95,7 +133,6 @@ class Reversi(State):
             if self.get_pawns_to_flip(action_index, turn)[0]:
                 return True
         return False
-    
 
     def get_all_legal_actions(self, turn):
         legal_actions = []
@@ -103,7 +140,6 @@ class Reversi(State):
             if self.get_pawns_to_flip(action_index, turn)[0]:
                 legal_actions.append(action_index)
         return legal_actions
-
 
     def take_random_action_playout(self):
         legal_actions = self.get_all_legal_actions(self.turn)
@@ -122,19 +158,20 @@ class Reversi(State):
 
         # return child
 
-
     def get_board(self):
         return self.board
 
     def get_extra_info(self):
-        # W reversi nie ma dodatkowych informacji
-        return None
+        no_white_pawns = np.sum(self.board == -1)
+        no_black_pawns = np.sum(self.board == 1)
+
+        return np.array([no_white_pawns, no_black_pawns], dtype=np.uint8)
 
     @staticmethod
     def action_name_to_index(action_name):
         if action_name == "-":
             return Reversi.M * Reversi.N
-        
+
         col = action_name[0].upper()
         row = int(action_name[1]) - 1
         i = row
@@ -158,11 +195,11 @@ class Reversi(State):
 
     @staticmethod
     def get_extra_info_memory():
-        return 0
+        return 2
 
     @staticmethod
     def get_max_actions():
-        return Reversi.M * Reversi.N
+        return Reversi.M * Reversi.N + 1
 
     def get_pawns_to_flip(self, action_index, turn=None):
         start_row = action_index // Reversi.N

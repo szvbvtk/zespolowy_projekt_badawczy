@@ -1,0 +1,67 @@
+MCTS-NC EXPERIMENT...
+HASH STRING: 0411835232_31683_941_[mcts_1_inf_vanilla;mctsnc_1_inf_4_256_acp_prodigal;Reversi_8x8;2]
+================================================================================================================================================================================================================
+MATCH-UP:
+{
+  ai_a_shortname: mcts_1_inf_vanilla,
+  ai_a_instance: MCTS(search_time_limit=1.0, search_steps_limit=inf, vanilla=True, ucb_c=2.0, seed: 0),
+  ai_b_shortname: mctsnc_1_inf_4_256_acp_prodigal,
+  ai_b_instance: MCTSNC(search_time_limit=1.0, search_steps_limit=inf, n_trees=4, n_playouts=256, variant='acp_prodigal', device_memory=2.0, ucb_c=2.0, seed: 0),
+  game_name: Reversi_8x8,
+  n_games: 2
+}
+================================================================================================================================================================================================================
+CPU AND SYSTEM PROPS:
+{
+  cpu_name: AMD Ryzen 5 5600U with Radeon Graphics,
+  ram_size: 15.4 GB,
+  os_name: Windows 11,
+  os_version: 10.0.26100,
+  os_machine: AMD64
+}
+GPU PROPS:
+{
+  name: NVIDIA GeForce RTX 3050 Laptop GPU,
+  max_threads_per_block: 1024,
+  max_block_dim_x: 1024,
+  max_block_dim_y: 1024,
+  max_block_dim_z: 64,
+  max_grid_dim_x: 2147483647,
+  max_grid_dim_y: 65535,
+  max_grid_dim_z: 65535,
+  max_shared_memory_per_block: 49152,
+  async_engine_count: 1,
+  can_map_host_memory: 1,
+  multiprocessor_count: 16,
+  warp_size: 32,
+  unified_addressing: 1,
+  pci_bus_id: 1,
+  pci_device_id: 0,
+  compute_capability: (8, 6),
+  cores_per_SM: 128,
+  cores_total: 2048
+}
+================================================================================================================================================================================================================
+[MCTSNC._init_device_side_arrays()... for MCTSNC(search_time_limit=1.0, search_steps_limit=inf, n_trees=4, n_playouts=256, variant='acp_prodigal', device_memory=2.0, ucb_c=2.0, seed: 0)]
+[MCTSNC._init_device_side_arrays() done; time: 2.7516000270843506 s, per_state_memory: 339 B,  calculated max_tree_size: 1583663]
+================================================================================================================================================================================================================
+
+
+
+GAME 1/2:
+BLACK: MCTS(search_time_limit=1.0, search_steps_limit=inf, vanilla=True, ucb_c=2.0, seed: 0)
+WHITE: MCTSNC(search_time_limit=1.0, search_steps_limit=inf, n_trees=4, n_playouts=256, variant='acp_prodigal', device_memory=2.0, ucb_c=2.0, seed: 0)
+1| + + + ● ● ● ● ● 
+2| + + + ● ● ● ● ● 
+3| + + + ○ ● ○ ● ● 
+4| + + + ○ ○ ● ● ● 
+5| ● + ○ ○ ○ ○ ● ● 
+6| ● ● ○ ○ ○ + + ● 
+7| ● + ○ + + + + + 
+8| ● ● ● ● ● + + + 
+   A B C D E F G H 
+Ruch: Czarny
+
+
+MOVES ROUND: 1 [game: 1/2]
+MCTS RUN...

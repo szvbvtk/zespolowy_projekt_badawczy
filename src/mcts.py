@@ -568,7 +568,8 @@ class MCTS:
 
         if self.verbose_debug:
             print(f"[MCTS._reduce_over_actions()...]")        
-        t1_reduce_over_actions = time.time()        
+        t1_reduce_over_actions = time.time()  
+        # bp   
         self._reduce_over_actions()
         best_action_label = str(self.best_action)
         best_action_label += f" ({type(self.root).action_index_to_name(self.best_action)})"

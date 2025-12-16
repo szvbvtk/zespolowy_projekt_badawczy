@@ -1,0 +1,87 @@
+MCTS-NC EXPERIMENT...
+HASH STRING: 2617076470_75245_941_[mctsnc_1_inf_4_256_acp_prodigal;mctsnc_1_inf_4_256_acp_prodigal;Reversi_8x8;2]
+================================================================================================================================================================================================================
+MATCH-UP:
+{
+  ai_a_shortname: mctsnc_1_inf_4_256_acp_prodigal,
+  ai_a_instance: MCTSNC(search_time_limit=1.0, search_steps_limit=inf, n_trees=4, n_playouts=256, variant='acp_prodigal', device_memory=2.0, ucb_c=2.0, seed: 0),
+  ai_b_shortname: mctsnc_1_inf_4_256_acp_prodigal,
+  ai_b_instance: MCTSNC(search_time_limit=1.0, search_steps_limit=inf, n_trees=4, n_playouts=256, variant='acp_prodigal', device_memory=2.0, ucb_c=2.0, seed: 0),
+  game_name: Reversi_8x8,
+  n_games: 2
+}
+================================================================================================================================================================================================================
+CPU AND SYSTEM PROPS:
+{
+  cpu_name: AMD Ryzen 5 5600U with Radeon Graphics,
+  ram_size: 15.4 GB,
+  os_name: Windows 11,
+  os_version: 10.0.26100,
+  os_machine: AMD64
+}
+GPU PROPS:
+{
+  name: NVIDIA GeForce RTX 3050 Laptop GPU,
+  max_threads_per_block: 1024,
+  max_block_dim_x: 1024,
+  max_block_dim_y: 1024,
+  max_block_dim_z: 64,
+  max_grid_dim_x: 2147483647,
+  max_grid_dim_y: 65535,
+  max_grid_dim_z: 65535,
+  max_shared_memory_per_block: 49152,
+  async_engine_count: 1,
+  can_map_host_memory: 1,
+  multiprocessor_count: 16,
+  warp_size: 32,
+  unified_addressing: 1,
+  pci_bus_id: 1,
+  pci_device_id: 0,
+  compute_capability: (8, 6),
+  cores_per_SM: 128,
+  cores_total: 2048
+}
+================================================================================================================================================================================================================
+[MCTSNC._init_device_side_arrays()... for MCTSNC(search_time_limit=1.0, search_steps_limit=inf, n_trees=4, n_playouts=256, variant='acp_prodigal', device_memory=2.0, ucb_c=2.0, seed: 0)]
+[MCTSNC._init_device_side_arrays() done; time: 3.0125648975372314 s, per_state_memory: 339 B,  calculated max_tree_size: 1583663]
+================================================================================================================================================================================================================
+[MCTSNC._init_device_side_arrays()... for MCTSNC(search_time_limit=1.0, search_steps_limit=inf, n_trees=4, n_playouts=256, variant='acp_prodigal', device_memory=2.0, ucb_c=2.0, seed: 0)]
+[MCTSNC._init_device_side_arrays() done; time: 0.2825467586517334 s, per_state_memory: 339 B,  calculated max_tree_size: 1583663]
+================================================================================================================================================================================================================
+
+
+
+GAME 1/2:
+BLACK: MCTSNC(search_time_limit=1.0, search_steps_limit=inf, n_trees=4, n_playouts=256, variant='acp_prodigal', device_memory=2.0, ucb_c=2.0, seed: 0)
+WHITE: MCTSNC(search_time_limit=1.0, search_steps_limit=inf, n_trees=4, n_playouts=256, variant='acp_prodigal', device_memory=2.0, ucb_c=2.0, seed: 0)
+1| + + + ● ● ● ● ● 
+2| + + + ● ● ● ● ● 
+3| + + + ○ ● ○ ● ● 
+4| + + + ○ ○ ● ● ● 
+5| ● + ○ ○ ○ ○ ● ● 
+6| ● ● ○ ○ ○ + + ● 
+7| ● + ○ + + + + + 
+8| ● ● ● ● ● + + + 
+   A B C D E F G H 
+Ruch: Czarny
+
+
+MOVES ROUND: 1 [game: 1/2]
+MCTSNC RUN... [MCTSNC(search_time_limit=1.0, search_steps_limit=inf, n_trees=4, n_playouts=256, variant='acp_prodigal', device_memory=2.0, ucb_c=2.0, seed: 0)]
+[actions info:
+{
+  0: {'name': 'A1', 'n_root': 128000, 'win_flag': False, 'n': 0, 'n_wins': 0, 'q': nan, 'ucb': inf},
+  best: {'index': 0, 'name': 'A1', 'n_root': 128000, 'win_flag': False, 'n': 0, 'n_wins': 0, 'q': nan, 'ucb': inf}
+}]
+[performance info:
+{
+  steps: 125,
+  steps_per_second: 123.45806344660511,
+  playouts: 128000,
+  playouts_per_second: 126421.05696932363,
+  times_[ms]: {'total': 1012.4895572662354, 'loop': 1008.5673332214355, 'reduce_over_trees': 0.0, 'reduce_over_actions': 0.0, 'mean_loop': 8.068538665771484, 'mean_select': 0.38404273986816406, 'mean_expand': 0.8095149993896484, 'mean_playout': 5.932353973388672, 'mean_backup': 0.942626953125},
+  trees: {'count': 4, 'mean_depth': np.float64(0.0), 'max_depth': 0, 'mean_size': np.float64(1.0), 'max_size': 1}
+}]
+MCTSNC RUN DONE. [time: 1.0124895572662354 s; best action: 0 (A1), best win_flag: False, best n: 0, best n_wins: 0, best q: nan]
+MOVE PLAYED: A1
+None

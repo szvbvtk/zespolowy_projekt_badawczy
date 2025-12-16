@@ -8,24 +8,18 @@ __email__ = "pklesk@zut.edu.pl"
 @cuda.jit(device=True)
 def is_action_legal(m, n, board, extra_info, turn, action, legal_actions):
     """Checks whether action defined by index ``action`` is legal and leaves the result (a boolean indicator) in array ``legal_actions`` under that index."""
-    # is_action_legal_c4(m, n, board, extra_info, turn, action, legal_actions)
-    # is_action_legal_gomoku(m, n, board, extra_info, turn, action, legal_actions)
     is_action_legal_reversi(m, n, board, extra_info, turn, action, legal_actions)
 
 
 @cuda.jit(device=True)
 def take_action(m, n, board, extra_info, turn, action):
     """Takes action defined by index ``action`` during an expansion - modifies the ``board`` and possibly ``extra_info`` arrays."""
-    # take_action_c4(m, n, board, extra_info, turn, action)
-    # take_action_gomoku(m, n, board, extra_info, turn, action)
     take_action_reversi(m, n, board, extra_info, turn, action)
 
 
 @cuda.jit(device=True)
 def legal_actions_playout(m, n, board, extra_info, turn, legal_actions_with_count):
     """Establishes legal actions and their count during a playout; leaves the results in array ``legal_actions_with_count``."""
-    # legal_actions_playout_c4(m, n, board, extra_info, turn, legal_actions_with_count)
-    # legal_actions_playout_gomoku(m, n, board, extra_info, turn, legal_actions_with_count)
     legal_actions_playout_reversi(
         m, n, board, extra_info, turn, legal_actions_with_count
     )
@@ -35,11 +29,6 @@ def legal_actions_playout(m, n, board, extra_info, turn, legal_actions_with_coun
 def take_action_playout(
     m, n, board, extra_info, turn, action, action_ord, legal_actions_with_count
 ):
-    """Takes action defined by index ``action`` during a playout - modifies the ``board`` and possibly arrays: ``extra_info``, ``legal_actions_with_count``."""
-    # take_action_playout_c4(
-    #     m, n, board, extra_info, turn, action, action_ord, legal_actions_with_count
-    # )
-    # take_action_playout_gomoku(m, n, board, extra_info, turn, action, action_ord, legal_actions_with_count)
     take_action_playout_reversi(
         m, n, board, extra_info, turn, action, action_ord, legal_actions_with_count
     )
@@ -53,340 +42,82 @@ def compute_outcome(
     Computes and returns the outcome of game state represented by ``board`` and ``extra_info`` arrays.
     Outcomes ``{-1, 1}`` denote a win by minimizing or maximizing player, respectively. ``0`` denotes a tie. Any other outcome denotes an ongoing game.
     """
-    # return compute_outcome_c4(m, n, board, extra_info, turn, last_action)
-    # return compute_outcome_gomoku(m, n, board, extra_info, turn, last_action)
     return compute_outcome_reversi(m, n, board, extra_info, turn, last_action)
 
 
 @cuda.jit(device=True)
-def is_action_legal_c4(m, n, board, extra_info, turn, action, legal_actions):
-    """Functionality of function ``is_action_legal`` for the game of Connect 4."""
-    legal_actions[action] = True if extra_info[action] < m else False
+def _has_any_move(m, n, board, turn):
+    opponent = -turn
 
+    for idx in range(m * n):
+        i = idx // n
+        j = idx % n
 
-@cuda.jit(device=True)
-def take_action_c4(m, n, board, extra_info, turn, action):
-    """Functionality of function ``take_action`` for the game of Connect 4."""
-    extra_info[action] += 1
-    row = m - extra_info[action]
-    board[row, action] = turn
+        if board[i, j] != 0:
+            continue
 
+        for horizontal in range(-1, 2):
+            for vertical in range(-1, 2):
+                if horizontal == 0 and vertical == 0:
+                    continue
 
-@cuda.jit(device=True)
-def legal_actions_playout_c4(m, n, board, extra_info, turn, legal_actions_with_count):
-    """Functionality of function ``legal_actions_playout`` for the game of Connect 4."""
-    count = 0
-    for j in range(n):
-        if extra_info[j] < m:
-            legal_actions_with_count[count] = j
-            count += 1
-    legal_actions_with_count[-1] = count
+                row = i + horizontal
+                col = j + vertical
 
+                if 0 <= row < m and 0 <= col < n and board[row, col] == opponent:
+                    while True:
+                        row += horizontal
+                        col += vertical
 
-@cuda.jit(device=True)
-def take_action_playout_c4(
-    m, n, board, extra_info, turn, action, action_ord, legal_actions_with_count
-):
-    """Functionality of function ``take_action_playout`` for the game of Connect 4."""
-    extra_info[action] += 1
-    row = m - extra_info[action]
-    board[row, action] = turn
+                        if row < 0 or row >= m or col < 0 or col >= n:
+                            break
 
+                        cell = board[row, col]
+                        if cell == 0:
+                            break
+                        if cell == turn:
+                            return True
 
-@cuda.jit(device=True)
-def compute_outcome_c4(m, n, board, extra_info, turn, last_action):
-    """Functionality of function ``compute_outcome`` for the game of Connect 4."""
-    last_token = -turn
-    j = last_action
-    i = m - extra_info[j]
-    # N-S
-    total = 0
-    for k in range(1, 4):
-        if i - k < 0 or board[i - k, j] != last_token:
-            break
-        total += 1
-    for k in range(1, 4):
-        if i + k >= m or board[i + k, j] != last_token:
-            break
-        total += 1
-    if total >= 3:
-        return last_token
-    # E-W
-    total = 0
-    for k in range(1, 4):
-        if j + k >= n or board[i, j + k] != last_token:
-            break
-        total += 1
-    for k in range(1, 4):
-        if j - k < 0 or board[i, j - k] != last_token:
-            break
-        total += 1
-    if total >= 3:
-        return last_token
-    # NE-SW
-    total = 0
-    for k in range(1, 4):
-        if i - k < 0 or j + k >= n or board[i - k, j + k] != last_token:
-            break
-        total += 1
-    for k in range(1, 4):
-        if i + k >= m or j - k < 0 or board[i + k, j - k] != last_token:
-            break
-        total += 1
-    if total >= 3:
-        return last_token
-    # NW-SE
-    total = 0
-    for k in range(1, 4):
-        if i - k < 0 or j - k < 0 or board[i - k, j - k] != last_token:
-            break
-        total += 1
-    for k in range(1, 4):
-        if i + k >= m or j + k >= n or board[i + k, j + k] != last_token:
-            break
-        total += 1
-    if total >= 3:
-        return last_token
-    draw = True
-    for j in range(n):
-        if extra_info[j] < m:
-            draw = False
-            break
-    if draw:
-        return 0
-    return 2  # anything other than {-1, 0, 1} implies 'game ongoing'
-
-
-@cuda.jit(device=True)
-def is_action_legal_gomoku(m, n, board, extra_info, turn, action, legal_actions):
-    """Functionality of function ``is_action_legal`` for the game of Gomoku."""
-    i = action // n
-    j = action % n
-    legal_actions[action] = board[i, j] == 0
-
-
-@cuda.jit(device=True)
-def take_action_gomoku(m, n, board, extra_info, turn, action):
-    """Functionality of function ``take_action`` for the game of Gomoku."""
-    i = action // n
-    j = action % n
-    board[i, j] = turn
-
-
-@cuda.jit(device=True)
-def legal_actions_playout_gomoku(
-    m, n, board, extra_info, turn, legal_actions_with_count
-):
-    """Functionality of function ``legal_actions_playout`` for the game of Gomoku."""
-    if (
-        legal_actions_with_count[-1] == 0
-    ):  # time-consuming board scan only if legal actions not established yet
-        count = 0
-        k = 0
-        for i in range(m):
-            for j in range(n):
-                if board[i, j] == 0:
-                    legal_actions_with_count[count] = k
-                    count += 1
-                k += 1
-        legal_actions_with_count[-1] = count
-
-
-@cuda.jit(device=True)
-def take_action_playout_gomoku(
-    m, n, board, extra_info, turn, action, action_ord, legal_actions_with_count
-):
-    """Functionality of function ``take_action_playout`` for the game of Gomoku."""
-    i = action // n
-    j = action % n
-    board[i, j] = turn
-    last_legal_action = legal_actions_with_count[legal_actions_with_count[-1] - 1]
-    legal_actions_with_count[action_ord] = last_legal_action
-    legal_actions_with_count[-1] -= 1
-
-
-@cuda.jit(device=True)
-def compute_outcome_gomoku(m, n, board, extra_info, turn, last_action):
-    """Functionality of function ``compute_outcome`` for the game of Gomoku."""
-    last_token = -turn
-    i = last_action // n
-    j = last_action % n
-    # N-S
-    total = 0
-    for k in range(1, 6):
-        if i - k < 0 or board[i - k, j] != last_token:
-            break
-        total += 1
-    for k in range(1, 6):
-        if i + k >= m or board[i + k, j] != last_token:
-            break
-        total += 1
-    if total == 4:
-        return last_token
-    # E-W
-    total = 0
-    for k in range(1, 6):
-        if j + k >= n or board[i, j + k] != last_token:
-            break
-        total += 1
-    for k in range(1, 6):
-        if j - k < 0 or board[i, j - k] != last_token:
-            break
-        total += 1
-    if total == 4:
-        return last_token
-    # NE-SW
-    total = 0
-    for k in range(1, 6):
-        if i - k < 0 or j + k >= n or board[i - k, j + k] != last_token:
-            break
-        total += 1
-    for k in range(1, 6):
-        if i + k >= m or j - k < 0 or board[i + k, j - k] != last_token:
-            break
-        total += 1
-    if total == 4:
-        return last_token
-    # NW-SE
-    total = 0
-    for k in range(1, 6):
-        if i - k < 0 or j - k < 0 or board[i - k, j - k] != last_token:
-            break
-        total += 1
-    for k in range(1, 6):
-        if i + k >= m or j + k >= n or board[i + k, j + k] != last_token:
-            break
-        total += 1
-    if total == 4:
-        return last_token
-    draw = True
-    for i in range(m):
-        for j in range(n):
-            if board[i, j] == 0:
-                draw = False
-                break
-    if draw:
-        return 0
-    return 2  # anything other than {-1, 0, 1} implies 'game ongoing'
+    return False
 
 
 @cuda.jit(device=True)
 def is_action_legal_reversi(m, n, board, extra_info, turn, action, legal_actions):
     legal_actions[action] = False
 
-    # jeśli akcja = m * n, to znaczy że jest zamarkowany pas
-    # trzeba sprawdzić czy jest to jedynie zwykły pas czy drugi gracz też nie ma ruchów (wtedy gra się kończy)
     if action == m * n:
-        player_has_action = False
-
-        for idx in range(m * n):
-            i = idx // n
-            j = idx % n
-
-            if board[i, j] != 0:
-                continue
-
-            for horizontal in range(-1, 2):
-                for vertical in range(-1, 2):
-                    if horizontal == 0 and vertical == 0:
-                        continue
-
-                    row = i + horizontal
-                    col = j + vertical
-
-                    if row < 0 or row >= m or col < 0 or col >= n:
-                        continue
-
-                    if board[row, col] == -turn:
-                        while True:
-                            row += horizontal
-                            col += vertical
-                            if (
-                                row < 0
-                                or row >= m
-                                or col < 0
-                                or col >= n
-                                or board[row, col] == 0
-                            ):
-                                break
-                            if board[row, col] == turn:
-                                player_has_action = True
-                                break
-
-                # skoro znaleziono ruch to znaczy że pas nie jest legalny
-                if player_has_action:
-                    break
-
-        if player_has_action:
+        if _has_any_move(m, n, board, turn):
             return
 
-        # jeśli nie nastąpił return to znaczy że gracz nie ma ruchów więc sprawdzamy czy ma je przeciwnik (ta sama logika)
-        opponent = -turn
-        opponent_has_action = False
-        for idx in range(m * n):
-            i = idx // n
-            j = idx % n
-            if board[i, j] != 0:
-                continue
-            for horizontal in range(-1, 2):
-                for vertical in range(-1, 2):
-                    if horizontal == 0 and vertical == 0:
-                        continue
-                    row = i + horizontal
-                    col = j + vertical
-                    if row < 0 or row >= m or col < 0 or col >= n:
-                        continue
-                    if board[row, col] == -opponent:
-                        while True:
-                            row += horizontal
-                            col += vertical
-                            if (
-                                row < 0
-                                or row >= m
-                                or col < 0
-                                or col >= n
-                                or board[row, col] == 0
-                            ):
-                                break
-                            if board[row, col] == opponent:
-                                opponent_has_action = True
-                                break
-                if opponent_has_action:
-                    break
-
-        # czyli aktualny gracz nie ma ruchów, ale przeciwnik ma - więc pas powinien nastąpić
-        if opponent_has_action:
-            legal_actions[action] = True
+        legal_actions[action] = True
         return
 
-    # sprawdzanie normalnego ruchu != m * n
     i = action // n
     j = action % n
 
     if board[i, j] != 0:
         return
 
+    opponent = -turn
+
     for horizontal in range(-1, 2):
         for vertical in range(-1, 2):
             if horizontal == 0 and vertical == 0:
                 continue
-            row = i + horizontal
-            col = j + vertical
-            if row < 0 or row >= m or col < 0 or col >= n:
-                continue
-            if board[row, col] == -turn:
+
+            row, col = i + horizontal, j + vertical
+
+            if 0 <= row < m and 0 <= col < n and board[row, col] == opponent:
                 while True:
                     row += horizontal
                     col += vertical
-                    if (
-                        row < 0
-                        or row >= m
-                        or col < 0
-                        or col >= n
-                        or board[row, col] == 0
-                    ):
+                    if not (0 <= row < m and 0 <= col < n):
                         break
-                    if board[row, col] == turn:
+
+                    cell = board[row, col]
+                    if cell == 0:
+                        break
+                    if cell == turn:
                         legal_actions[action] = True
                         return
 
@@ -398,41 +129,58 @@ def take_action_reversi(m, n, board, extra_info, turn, action):
 
     i = action // n
     j = action % n
+
     board[i, j] = turn
+
+    if turn == -1:
+        extra_info[0] += 1
+    else:
+        extra_info[1] += 1
+
+    opponent = -turn
 
     for horizontal in range(-1, 2):
         for vertical in range(-1, 2):
             if horizontal == 0 and vertical == 0:
                 continue
-            row = i + horizontal
-            col = j + vertical
 
-            if row < 0 or row >= m or col < 0 or col >= n:
-                continue
+            row, col = i + horizontal, j + vertical
 
-            if board[row, col] == -turn:
+            found_anchor = False
+            r_check, c_check = row, col
+
+            if (
+                0 <= r_check < m
+                and 0 <= c_check < n
+                and board[r_check, c_check] == opponent
+            ):
                 while True:
-                    row += horizontal
-                    col += vertical
-
-                    if (
-                        row < 0
-                        or row >= m
-                        or col < 0
-                        or col >= n
-                        or board[row, col] == 0
-                    ):
+                    r_check += horizontal
+                    c_check += vertical
+                    if not (0 <= r_check < m and 0 <= c_check < n):
                         break
 
-                    # jeśli przeciwnik otoczony w kierunku to cofamy sie i zmieniamy pionki
-                    if board[row, col] == turn:
-                        while True:
-                            row -= horizontal
-                            col -= vertical
-                            if row == i and col == j:
-                                break
-                            board[row, col] = turn
+                    cell = board[r_check, c_check]
+                    if cell == 0:
                         break
+                    if cell == turn:
+                        found_anchor = True
+                        break
+
+            if found_anchor:
+                curr_r, curr_c = row, col
+                while curr_r != r_check or curr_c != c_check:
+                    board[curr_r, curr_c] = turn
+
+                    if turn == -1:
+                        extra_info[0] += 1
+                        extra_info[1] -= 1
+                    else:
+                        extra_info[1] += 1
+                        extra_info[0] -= 1
+
+                    curr_r += horizontal
+                    curr_c += vertical
 
 
 @cuda.jit(device=True)
@@ -440,103 +188,51 @@ def legal_actions_playout_reversi(
     m, n, board, extra_info, turn, legal_actions_with_count
 ):
     count = 0
+    opponent = -turn
 
-    for action_index in range(m * n):
-        i = action_index // n
-        j = action_index % n
+    for action in range(m * n):
+        i = action // n
+        j = action % n
 
         if board[i, j] != 0:
             continue
 
-        legal = False
-
+        is_legal = False
         for horizontal in range(-1, 2):
             for vertical in range(-1, 2):
                 if horizontal == 0 and vertical == 0:
                     continue
 
-                row = i + horizontal
-                col = j + vertical
-
-                if row < 0 or row >= m or col < 0 or col >= n:
-                    continue
-
-                if board[row, col] == -turn:
+                row, col = i + horizontal, j + vertical
+                if 0 <= row < m and 0 <= col < n and board[row, col] == opponent:
                     while True:
                         row += horizontal
                         col += vertical
-                        if (
-                            row < 0
-                            or row >= m
-                            or col < 0
-                            or col >= n
-                            or board[row, col] == 0
-                        ):
+                        if not (0 <= row < m and 0 <= col < n):
                             break
-                        if board[row, col] == turn:
-                            legal = True
+                        cell = board[row, col]
+                        if cell == 0:
                             break
-                if legal:
+                        if cell == turn:
+                            is_legal = True
+                            break
+                if is_legal:
                     break
+            if is_legal:
+                break
 
-        if legal:
-            legal_actions_with_count[count] = action_index
+        if is_legal:
+            legal_actions_with_count[count] = action
             count += 1
 
-    # jeśli są legalne ruchy to zapisujemy ich liczbę i return
     if count > 0:
         legal_actions_with_count[-1] = count
         return
 
-    # jeśli nie nastąpił return to znaczy że aktualny gracz nie ma ruchów.
-    # trzeba sprawdzić czy przeciwnik je ma
-    opponent = -turn
-    opponent_has_action = False
-
-    for action_index in range(m * n):
-        i = action_index // n
-        j = action_index % n
-        if board[i, j] != 0:
-            continue
-
-        legal_opponent = False
-
-        for horizontal in range(-1, 2):
-            for vertical in range(-1, 2):
-                if horizontal == 0 and vertical == 0:
-                    continue
-                row = i + horizontal
-                col = j + vertical
-                if row < 0 or row >= m or col < 0 or col >= n:
-                    continue
-                if board[row, col] == -opponent:
-                    while True:
-                        row += horizontal
-                        col += vertical
-                        if (
-                            row < 0
-                            or row >= m
-                            or col < 0
-                            or col >= n
-                            or board[row, col] == 0
-                        ):
-                            break
-                        if board[row, col] == opponent:
-                            legal_opponent = True
-                            break
-                if legal_opponent:
-                    break
-
-        if legal_opponent:
-            opponent_has_action = True
-            break
-
-    # jeśli przeciwnik ma ruchy to aktualny gracz musi spasować, sztuczny ruch
-    if opponent_has_action:
-        legal_actions_with_count[0] = m * n  # m*n = indeks poza planszą = pas
+    if _has_any_move(m, n, board, opponent):
+        legal_actions_with_count[0] = m * n
         legal_actions_with_count[-1] = 1
     else:
-        # jeśli przeciwnik też nie ma ruchów (liczba legalnych ruchów = 0) to gra się kończy
         legal_actions_with_count[-1] = 0
 
 
@@ -544,7 +240,7 @@ def legal_actions_playout_reversi(
 def take_action_playout_reversi(
     m, n, board, extra_info, turn, action, action_ord, legal_actions_with_count
 ):
-    if action == m * n:  # pas
+    if action == m * n:
         return
 
     i = action // n
@@ -583,82 +279,36 @@ def take_action_playout_reversi(
 
 @cuda.jit(device=True)
 def compute_outcome_reversi(m, n, board, extra_info, turn, last_action):
-    player_1 = 0
-    player_minus_1 = 0
+    # OPTYMALIZACJA:
+    # 1. Sprawdzamy czy gra trwa.
+    #    Gra trwa jeśli:
+    #    A. Aktualny gracz ma ruchy.
+    #    B. LUB poprzedni ruch to NIE BYŁ pas, a aktualny gracz musi spasować (ale przeciwnik może będzie miał ruch).
 
-    for i in range(m):
-        for j in range(n):
-            if board[i, j] == 1:
-                player_1 += 1
-            elif board[i, j] == -1:
-                player_minus_1 += 1
+    # Szybki check: czy aktualny gracz ma ruch?
+    if _has_any_move(m, n, board, turn):
+        return 2  # Gra trwa
 
-    has_player_1_action = False
-    has_player_minus_1_action = False
+    # Jeśli aktualny gracz nie ma ruchu, to albo PAS, albo KONIEC.
+    # Sprawdzamy czy ostatni ruch był pasem. Jeśli tak i teraz też nie ma ruchu -> dwa pasy -> koniec.
+    if last_action == m * n:
+        # Dwa pasy z rzędu (lub pas i brak możliwości ruchu) -> Koniec gry
+        pass
+    else:
+        # Ostatni ruch to był normalny ruch. Sprawdźmy czy przeciwnik (który teraz będzie miał ruch po naszym pasie) ma opcje.
+        if _has_any_move(m, n, board, -turn):
+            return 2  # Gra trwa (będzie pas)
 
-    for action_index in range(m * n):
-        i = action_index // n
-        j = action_index % n
+    # JEŚLI DOTARLIŚMY TU -> KONIEC GRY
+    # Pobieramy wynik bezpośrednio z extra_info (czas O(1) zamiast skanowania O(N))
+    # extra_info[0] = BIALE (-1), extra_info[1] = CZARNE (1)
 
-        if board[i, j] != 0:
-            continue
+    n_white = extra_info[0]
+    n_black = extra_info[1]
 
-        for horizontal in range(-1, 2):
-            for vertical in range(-1, 2):
-                if horizontal == 0 and vertical == 0:
-                    continue
-
-                row = i + horizontal
-                col = j + vertical
-                row2 = row
-                col2 = col
-
-                if 0 <= row < m and 0 <= col < n and board[row, col] == -1:
-                    while True:
-                        row += horizontal
-                        col += vertical
-                        if (
-                            row < 0
-                            or row >= m
-                            or col < 0
-                            or col >= n
-                            or board[row, col] == 0
-                        ):
-                            break
-                        if board[row, col] == 1:
-                            has_player_1_action = True
-                            break
-
-                if 0 <= row2 < m and 0 <= col2 < n and board[row2, col2] == 1:
-                    while True:
-                        row2 += horizontal
-                        col2 += vertical
-                        if (
-                            row2 < 0
-                            or row2 >= m
-                            or col2 < 0
-                            or col2 >= n
-                            or board[row2, col2] == 0
-                        ):
-                            break
-                        if board[row2, col2] == -1:
-                            has_player_minus_1_action = True
-                            break
-
-                # skoro znaleziono ruch to można przerwać dalsze sprawdzanie, gra na pewno trwa
-                if has_player_1_action and has_player_minus_1_action:
-                    break
-
-        if has_player_1_action and has_player_minus_1_action:
-            break
-
-    # gra trwa dalej
-    if has_player_1_action or has_player_minus_1_action:
-        return 2
-
-    # jeśli żaden z graczy nie ma ruchów to gra się kończy i sprawdzamy kto wygrał
-    if player_1 > player_minus_1:
+    if n_black > n_white:
         return 1
-    if player_minus_1 > player_1:
+    elif n_white > n_black:
         return -1
-    return 0
+    else:
+        return 0

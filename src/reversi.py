@@ -86,6 +86,7 @@ class Reversi(State):
 
         s += "\n"
         s += f"Ruch: {'BIAŁY' if self.turn == 1 else 'CZARNY'}\n"
+        
         no_white_pawns = np.sum(self.board == 1)
         no_black_pawns = np.sum(self.board == -1)
         s += f"Punkty - BIAŁY: {no_white_pawns}, CZARNY: {no_black_pawns}\n"

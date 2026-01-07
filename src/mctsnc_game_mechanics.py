@@ -37,7 +37,7 @@ def take_action_playout(
 @cuda.jit(device=True)
 def compute_outcome(
     m, n, board, extra_info, turn, last_action
-):  # any outcome other than {-1, 0, 1} implies status: game ongoing
+):  
     """
     Computes and returns the outcome of game state represented by ``board`` and ``extra_info`` arrays.
     Outcomes ``{-1, 1}`` denote a win by minimizing or maximizing player, respectively. ``0`` denotes a tie. Any other outcome denotes an ongoing game.
@@ -279,29 +279,13 @@ def take_action_playout_reversi(
 
 @cuda.jit(device=True)
 def compute_outcome_reversi(m, n, board, extra_info, turn, last_action):
-    # OPTYMALIZACJA:
-    # 1. Sprawdzamy czy gra trwa.
-    #    Gra trwa jeśli:
-    #    A. Aktualny gracz ma ruchy.
-    #    B. LUB poprzedni ruch to NIE BYŁ pas, a aktualny gracz musi spasować (ale przeciwnik może będzie miał ruch).
-
-    # Szybki check: czy aktualny gracz ma ruch?
     if _has_any_move(m, n, board, turn):
-        return 2  # Gra trwa
-
-    # Jeśli aktualny gracz nie ma ruchu, to albo PAS, albo KONIEC.
-    # Sprawdzamy czy ostatni ruch był pasem. Jeśli tak i teraz też nie ma ruchu -> dwa pasy -> koniec.
+        return 2  
     if last_action == m * n:
-        # Dwa pasy z rzędu (lub pas i brak możliwości ruchu) -> Koniec gry
         pass
     else:
-        # Ostatni ruch to był normalny ruch. Sprawdźmy czy przeciwnik (który teraz będzie miał ruch po naszym pasie) ma opcje.
         if _has_any_move(m, n, board, -turn):
-            return 2  # Gra trwa (będzie pas)
-
-    # JEŚLI DOTARLIŚMY TU -> KONIEC GRY
-    # Pobieramy wynik bezpośrednio z extra_info (czas O(1) zamiast skanowania O(N))
-    # extra_info[0] = BIALE (-1), extra_info[1] = CZARNE (1)
+            return 2  
 
     n_white = extra_info[0]
     n_black = extra_info[1]

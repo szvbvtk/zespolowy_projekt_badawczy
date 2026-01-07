@@ -34,8 +34,8 @@ from reversi import Reversi
 STATE_CLASS = Reversi
 N_GAMES = 2
 # None = Human
-AI_B_SHORTNAME = None
-AI_A_SHORTNAME = "mctsnc_5_inf_4_256_acp_prodigal"
+AI_A_SHORTNAME = None
+AI_B_SHORTNAME = "mctsnc_5_inf_4_256_acp_prodigal"
 # AI_B_SHORTNAME =  None
 # AI_A_SHORTNAME = None
 REPRODUCE_EXPERIMENT = False

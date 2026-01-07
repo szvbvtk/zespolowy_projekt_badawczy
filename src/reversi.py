@@ -19,10 +19,10 @@ class Reversi(State):
             mid_row = Reversi.M // 2
             mid_col = Reversi.N // 2
 
-            self.board[mid_row - 1, mid_col - 1] = -1  # biale
-            self.board[mid_row, mid_col] = -1  # biale
-            self.board[mid_row - 1, mid_col] = 1  # czarne
-            self.board[mid_row, mid_col - 1] = 1  # czarne
+            self.board[mid_row - 1, mid_col - 1] = 1  
+            self.board[mid_row, mid_col] = 1 
+            self.board[mid_row - 1, mid_col] = -1  
+            self.board[mid_row, mid_col - 1] = -1 
 
             # self.board[0, 3] = -1
             # self.board[0, 4] = -1
@@ -85,7 +85,7 @@ class Reversi(State):
             s += f"{chr(ord('A') + col_idx)} "
 
         s += "\n"
-        s += f"Ruch: {'Czarny' if self.turn == 1 else 'Biały'}\n"
+        s += f"Ruch: {'BIAŁY' if self.turn == 1 else 'CZARNY'}\n"
 
         return s
 

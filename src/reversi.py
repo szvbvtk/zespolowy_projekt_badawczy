@@ -7,8 +7,8 @@ from numba import int8
 class Reversi(State):
     N = M = 8
 
-    # SYMBOLS = ["\u25cb", "+", "\u25cf"]
-    SYMBOLS = ["\u25cf", "+", "\u25cb"]
+    SYMBOLS = ["\u25cb", "+", "\u25cf"]
+    # SYMBOLS = ["\u25cf", "+", "\u25cb"]
 
     def __init__(self, parent=None):
         super().__init__(parent)

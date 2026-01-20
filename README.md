@@ -218,3 +218,10 @@ Documentation for the `MCTSNC` class alone is at: [https://pklesk.github.io/mcts
 
 ## Acknowledgments and credits
 - [Numba](https://numba.pydata.org): a high-performance just-in-time Python compiler.
+
+- ## Acknowledgments and credits
+- [Numba](https://numba.pydata.org): a high-performance just-in-time Python compiler.
+
+- ## Documentation and Credits
+- It was created based on the repository by Przemyslaw Klesk (https://github.com/pklesk) :
+- https://github.com/pklesk/mcts_numba_cuda
